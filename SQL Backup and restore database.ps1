@@ -149,6 +149,17 @@ Begin {
             }
         }
 
+        $Tasks | Select-Object -Property @{
+            Name       = 'uniqueCombination';
+            Expression = {
+                "Source: '{0}' Destination '{1}'" -f $_.Source, $_.Destination
+            }
+        } | Group-Object -Property 'uniqueCombination' | Where-Object {
+            $_.Count -ge 2
+        } | ForEach-Object {
+            throw "Input file '$ImportFile': Duplicate combination found in 'ComputerName': $($_.Name)"
+        }
+
         if (-not ($file.Backup)) {
             throw "Input file '$ImportFile': Property 'Backup' not found."
         }
