@@ -3,31 +3,30 @@
         Create a database backup on one computer and restore it on another.
 
     .DESCRIPTION
-        Step 1
-            - A backup is made by running the script 'SQL Execute query'
-            - The input file is used and not modified
-        Step 2
-            - The backup file is copied to the destination computer (fixed name)
-            - Defined in parameter CopyDatabaseBackupFile
-        Step 3
-            - A backup restore is made by running the script 'SQL Execute query'
-            - The input file is used and not modified
+        For each pair in ComputerName a backup is made on the source computer
+        and restored on the destination computer using the backup and restore 
+        queries defined in the input file.
 
-    .PARAMETER ComputerName
-        The source computer holds the database backup file that wil be copied 
-        to the destination computer.
+        The backup file created on the source computer is simply copied to the
+        destination computer.
 
+    .PARAMETER ComputerName.Source
+        On the 'Source' computer the database backup will be made. 
+        
+    .PARAMETER ComputerName.Source
+        On the 'Destination' computer the database backup will be restored. 
+    
     .PARAMETER Backup.Query
         The query used to backup the database
 
     .PARAMETER Backup.Folder
-        The folder where the backup file will be stored
+        The folder where the backup file will be created
 
     .PARAMETER Restore.Query
         The query used to restore the database
 
     .PARAMETER Restore.File
-        The file path where backup file will be copied to on the destination 
+        The path where the backup file will be copied to on the destination 
         computer
 #>
 
