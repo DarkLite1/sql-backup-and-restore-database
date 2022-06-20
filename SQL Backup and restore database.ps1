@@ -13,9 +13,22 @@
             - A backup restore is made by running the script 'SQL Execute query'
             - The input file is used and not modified
 
-    .PARAMETER CopyDatabaseBackupFile
+    .PARAMETER ComputerName
         The source computer holds the database backup file that wil be copied 
         to the destination computer.
+
+    .PARAMETER Backup.Query
+        The query used to backup the database
+
+    .PARAMETER Backup.Folder
+        The folder where the backup file will be stored
+
+    .PARAMETER Restore.Query
+        The query used to restore the database
+
+    .PARAMETER Restore.File
+        The file path where backup file will be copied to on the destination 
+        computer
 #>
 
 [CmdLetBinding()]
