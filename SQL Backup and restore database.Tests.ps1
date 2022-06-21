@@ -97,7 +97,7 @@ Describe 'send an e-mail to the admin when' {
                     # MailTo       = @('bob@contoso.com')
                     MaxConcurrentJobs = @{
                         BackupAndRestore            = 6
-                        CopySourceToDestinationFile = 4
+                        CopyBackupFileToRestoreComputer = 4
                     }
                     ComputerName      = @{
                         Backup  = $env:COMPUTERNAME
@@ -128,7 +128,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         # ComputerName      = @(
                         #     @{
@@ -160,7 +160,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
                             # Backup      = $env:COMPUTERNAME
@@ -190,7 +190,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
                             Backup = $env:COMPUTERNAME
@@ -220,7 +220,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @(
                             @{
@@ -258,7 +258,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
                             Backup  = $env:COMPUTERNAME
@@ -288,7 +288,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
                             Backup  = $env:COMPUTERNAME
@@ -318,7 +318,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
                             Backup  = $env:COMPUTERNAME
@@ -350,7 +350,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
                             Backup  = $env:COMPUTERNAME
@@ -380,7 +380,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
                             Backup  = $env:COMPUTERNAME
@@ -410,7 +410,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
                             Backup  = $env:COMPUTERNAME
@@ -442,7 +442,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo       = @('bob@contoso.com')
                         # MaxConcurrentJobs = @{
                         #     BackupAndRestore            = 6
-                        #     CopySourceToDestinationFile = 4
+                        #     CopyBackupFileToRestoreComputer = 4
                         # }
                         ComputerName = @(
                             @{
@@ -474,7 +474,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             # BackupAndRestore            = 6
-                            CopySourceToDestinationFile = 4
+                            CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @(
                             @{
@@ -506,7 +506,7 @@ Describe 'send an e-mail to the admin when' {
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
                             BackupAndRestore = 6
-                            # CopySourceToDestinationFile = 4
+                            # CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @(
                             @{
@@ -527,7 +527,7 @@ Describe 'send an e-mail to the admin when' {
                     .$testScript @testParams
                     
                     Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
-                        (&$MailAdminParams) -and ($Message -like "*$ImportFile*Property 'CopySourceToDestinationFile' not found in property 'MaxConcurrentJobs'.*")
+                        (&$MailAdminParams) -and ($Message -like "*$ImportFile*Property 'CopyBackupFileToRestoreComputer' not found in property 'MaxConcurrentJobs'.*")
                     }
                     Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
                         $EntryType -eq 'Error'
@@ -556,7 +556,7 @@ Describe 'when tests pass' {
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
                 BackupAndRestore            = 6
-                CopySourceToDestinationFile = 4
+                CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
                 @{
@@ -705,7 +705,7 @@ Describe 'backup only on unique backup computers' {
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
                 BackupAndRestore            = 6
-                CopySourceToDestinationFile = 4
+                CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
                 @{
@@ -840,7 +840,7 @@ Describe 'when the backup computer is offline' {
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
                 BackupAndRestore            = 6
-                CopySourceToDestinationFile = 4
+                CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
                 @{
@@ -956,7 +956,7 @@ Describe 'when the restore computer is offline' {
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
                 BackupAndRestore            = 6
-                CopySourceToDestinationFile = 4
+                CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
                 @{
@@ -1079,7 +1079,7 @@ Describe 'when the backup fails' {
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
                 BackupAndRestore            = 6
-                CopySourceToDestinationFile = 4
+                CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
                 @{
@@ -1214,7 +1214,7 @@ Describe 'when the restore fails' {
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
                 BackupAndRestore            = 6
-                CopySourceToDestinationFile = 4
+                CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
                 @{

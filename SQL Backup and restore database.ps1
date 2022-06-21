@@ -186,8 +186,8 @@ Begin {
         if (-not ($file.MaxConcurrentJobs.BackupAndRestore)) {
             throw "Input file '$ImportFile': Property 'BackupAndRestore' not found in property 'MaxConcurrentJobs'."
         }
-        if (-not ($file.MaxConcurrentJobs.CopySourceToDestinationFile)) {
-            throw "Input file '$ImportFile': Property 'CopySourceToDestinationFile' not found in property 'MaxConcurrentJobs'."
+        if (-not ($file.MaxConcurrentJobs.CopyBackupFileToRestoreComputer)) {
+            throw "Input file '$ImportFile': Property 'CopyBackupFileToRestoreComputer' not found in property 'MaxConcurrentJobs'."
         }
         #endregion
 
@@ -423,7 +423,7 @@ Process {
                     
             $waitParams = @{
                 Name       = $Tasks.Job | Where-Object { $_ }
-                MaxThreads = $file.MaxConcurrentJobs.CopySourceToDestinationFile
+                MaxThreads = $file.MaxConcurrentJobs.CopyBackupFileToRestoreComputer
             }
             Wait-MaxRunningJobsHC @waitParams
         }
