@@ -3,18 +3,18 @@
         Create a database backup on one computer and restore it on another.
 
     .DESCRIPTION
-        For each pair in ComputerName a backup is made on the source computer
-        and restored on the destination computer using the backup and restore 
+        For each pair in ComputerName a backup is made on the backup computer
+        and restored on the restore computer using the backup and restore 
         queries defined in the input file.
 
-        The backup file created on the source computer is simply copied to the
-        destination computer.
+        The backup file created on the backup computer is simply copied to the
+        restore computer.
 
-    .PARAMETER ComputerName.Source
-        On the 'Source' computer the database backup will be made. 
+    .PARAMETER ComputerName.Backup
+        The backup computer name where the database backup will be made. 
         
-    .PARAMETER ComputerName.Source
-        On the 'Destination' computer the database backup will be restored. 
+    .PARAMETER ComputerName.Restore
+        The restore computer name where the database backup will be restored
     
     .PARAMETER Backup.Query
         The query used to backup the database
@@ -26,7 +26,7 @@
         The query used to restore the database
 
     .PARAMETER Restore.File
-        The path where the backup file will be copied to on the destination 
+        The path where the backup file will be copied to on the restore 
         computer
 #>
 
@@ -141,18 +141,18 @@ Begin {
             throw "Input file '$ImportFile': No 'ComputerName' found."
         }
         foreach ($computerName in $Tasks) {
-            if (-not $computerName.Source) {
-                throw "Input file '$ImportFile': No 'Source' computer name found in 'ComputerName'."
+            if (-not $computerName.Backup) {
+                throw "Input file '$ImportFile': No 'Backup' computer name found in 'ComputerName'."
             }
-            if (-not $computerName.Destination) {
-                throw "Input file '$ImportFile': No 'Destination' computer name found in 'ComputerName'."
+            if (-not $computerName.Restore) {
+                throw "Input file '$ImportFile': No 'Restore' computer name found in 'ComputerName'."
             }
         }
 
         $Tasks | Select-Object -Property @{
             Name       = 'uniqueCombination';
             Expression = {
-                "Source: '{0}' Destination '{1}'" -f $_.Source, $_.Destination
+                "Backup: '{0}' Restore '{1}'" -f $_.Backup, $_.Restore
             }
         } | Group-Object -Property 'uniqueCombination' | Where-Object {
             $_.Count -ge 2
@@ -195,24 +195,24 @@ Begin {
         Foreach ($task in $Tasks) {
             $sourceParams = @{
                 Path         = $file.Backup.Folder 
-                ComputerName = $task.Source
+                ComputerName = $task.Backup
             }
             $destinationParams = @{
                 Path         = $file.Restore.File
-                ComputerName = $task.Destination
+                ComputerName = $task.Restore
             }
 
             $addParams = @{
                 NotePropertyMembers = @{
-                    Backup      = $false
+                    BackupOk    = $false
+                    RestoreOk   = $false
                     BackupFile  = $null
                     RestoreFile = $null
-                    Restore     = $false
                     Job         = $null
                     JobErrors   = @()
                     UncPath     = @{
-                        Source      = ConvertTo-UncPathHC @sourceParams
-                        Destination = ConvertTo-UncPathHC @destinationParams
+                        Backup  = ConvertTo-UncPathHC @sourceParams
+                        Restore = ConvertTo-UncPathHC @destinationParams
                     }
                 }
             }
@@ -234,7 +234,7 @@ Process {
     try {
         #region Test computers online
         foreach ($task in $Tasks) {
-            , $task.Source + $task.Destination | ForEach-Object {
+            , $task.Backup + $task.Restore | ForEach-Object {
                 if (-not (Test-Connection -ComputerName $_ -Count 1 -Quiet)) {
                     $task.JobErrors += "Computer '$_' not online"
                 }
@@ -242,12 +242,12 @@ Process {
         }
         #endregion
 
-        #region Create backup folder on source computers
+        #region Create backup folders
         Foreach (
             $task in 
             $Tasks | Where-Object { -not $_.JobErrors }
         ) {
-            $path = $task.UncPath.Source
+            $path = $task.UncPath.Backup
             try {
                 if (-not (Test-Path $path -PathType Container)) {
                     Write-Verbose "Create backup folder '$path'"
@@ -261,12 +261,12 @@ Process {
         }
         #endregion
 
-        #region Create restore folder on destination computers
+        #region Create restore folders
         Foreach (
             $task in 
             $Tasks | Where-Object { -not $_.JobErrors }
         ) {
-            $path = $task.UncPath.Destination | Split-Path
+            $path = $task.UncPath.Restore | Split-Path
             try {
                 if (-not (Test-Path $path -PathType Container)) {
                     Write-Verbose "Create restore folder '$path'"
@@ -280,16 +280,16 @@ Process {
         }
         #endregion
 
-        #region Create database backups on unique source computers
+        #region Create database backups on unique backup computers
         #region Start jobs
         foreach (
             $task in 
             $Tasks | Where-Object { -not $_.JobErrors } | 
-            Sort-Object -Property Source -Unique
+            Sort-Object -Property 'Backup' -Unique
         ) {
             $invokeParams = @{
                 ScriptBlock  = $backupRestoreScriptBlock
-                ArgumentList = $task.Source, $file.Backup.Query, 'Backup'
+                ArgumentList = $task.Backup, $file.Backup.Query, 'Backup'
             }
 
             $M = "Start database backup on '{0}'" -f 
@@ -321,8 +321,8 @@ Process {
             $task 
             in $Tasks | Where-Object { $_.Job }
         ) {
-            $M = "Get job errors for source '{0}' destination '{1}'" -f 
-            $task.source, $task.destination
+            $M = "Get job errors for backup '{0}' restore '{1}'" -f 
+            $task.backup, $task.restore
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
             $jobErrors = @()
@@ -336,7 +336,7 @@ Process {
                 $t 
                 in 
                 , $task + ($Tasks | Where-Object { 
-                    (-not $_.Job) -and ($task.Source -eq $_.Source) 
+                    (-not $_.Job) -and ($task.Backup -eq $_.Backup) 
                     })
             ) {
                 foreach ($e in $jobErrors) {
@@ -344,12 +344,12 @@ Process {
                     $Error.Remove($e)
 
                     $M = "Database backup error on '{0}': {1}" -f 
-                    $t.Source, $e.ToString()
+                    $t.Backup, $e.ToString()
                     Write-Verbose $M; Write-EventLog @EventErrorParams -Message $M
                 }
 
                 if (-not $jobErrors) {
-                    $t.Backup = $true
+                    $t.BackupOk = $true
                 }
             }
         }
@@ -361,22 +361,22 @@ Process {
         
         #endregion
 
-        #region Get latest backup file on unique source computers
+        #region Get latest backup file on unique backup computers
         Foreach (
             $task in 
-            $Tasks | Where-Object { (-not $_.JobErrors) -and ($_.Backup) }
+            $Tasks | Where-Object { (-not $_.JobErrors) -and ($_.BackupOk) }
         ) {
             try {
-                $M = "Get latest backup file on '{0}'" -f $task.UncPath.Source
+                $M = "Get latest backup file on '{0}'" -f $task.UncPath.Backup
                 Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
                 
                 $task.BackupFile = $Tasks | Where-Object { 
-                    ($_.BackupFile) -and ($_.Source -eq $task.Source)
+                    ($_.BackupFile) -and ($_.Backup -eq $task.Backup)
                 } | Select-Object -First 1 -ExpandProperty 'BackupFile'
 
                 if (-not $task.BackupFile) {
                     $params = @{
-                        Path    = $task.UncPath.Source
+                        Path    = $task.UncPath.Backup
                         Recurse = $true
                         File    = $true
                         Filter  = '*.bak'
@@ -392,11 +392,11 @@ Process {
                     throw "No recent backup file found that is more recent than the script start time '$scriptStartTime'"
                 }
                 $M = "Latest backup file on '{0}' is '{1}'" -f 
-                $task.Source, $task.BackupFile
+                $task.Backup, $task.BackupFile
                 Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
             }
             catch {
-                $task.JobErrors += "Failed retrieving the latest backup file on '$($task.Source)' in folder '$($task.UncPath.Source)': $_"
+                $task.JobErrors += "Failed retrieving the latest backup file on '$($task.Backup)' in folder '$($task.UncPath.Backup)': $_"
                 $error.RemoveAt(0)
                 $M = $task.JobErrors[0]
                 Write-Warning $M; Write-EventLog @EventWarningParams -Message $M
@@ -404,7 +404,7 @@ Process {
         }
         #endregion
 
-        #region Copy backup file to destination computers
+        #region Copy backup file to restore computers
         #region Start jobs
         foreach (
             $task in 
@@ -412,7 +412,7 @@ Process {
         ) {
             $invokeParams = @{
                 ScriptBlock  = $copyItemScriptBlock
-                ArgumentList = $task.BackupFile, $task.UncPath.Destination
+                ArgumentList = $task.BackupFile, $task.UncPath.Restore
             }
         
             $M = "Copy backup file {0} to '{1}'" -f 
@@ -461,7 +461,7 @@ Process {
             }
 
             if (-not $jobErrors) {
-                $task.RestoreFile = $task.UncPath.Destination
+                $task.RestoreFile = $task.UncPath.Restore
             }
           
             $task.Job = $null
@@ -473,11 +473,11 @@ Process {
         #region Start jobs
         foreach (
             $task in 
-            $Tasks | Where-Object { (-not $_.JobErrors) -and ($_.Backup) }
+            $Tasks | Where-Object { (-not $_.JobErrors) -and ($_.BackupOk) }
         ) {
             $invokeParams = @{
                 ScriptBlock  = $backupRestoreScriptBlock
-                ArgumentList = $task.Destination, $file.Restore.Query, 'Restore'
+                ArgumentList = $task.Restore, $file.Restore.Query, 'Restore'
             }
         
             $M = "Start database restore on '{0}'" -f 
@@ -525,7 +525,7 @@ Process {
             }
         
             if (-not $jobErrors) {
-                $task.Restore = $true
+                $task.RestoreOk = $true
             }
 
             $task.Job = $null
@@ -534,8 +534,8 @@ Process {
         #endregion
 
         #region Export to Excel file
-        $exportToExcel = $Tasks | Select-Object -Property 'Source', 
-        'Destination', 'Backup', 'Restore', 'BackupFile', 'RestoreFile',
+        $exportToExcel = $Tasks | Select-Object -Property 'Backup', 
+        'Restore', 'BackupOk', 'RestoreOk', 'BackupFile', 'RestoreFile',
         @{
             Name       = 'Error';
             Expression = {
@@ -575,10 +575,10 @@ End {
         $counter = @{
             tasks        = ($Tasks | Measure-Object).Count
             backups      = (
-                $Tasks | Where-Object { $_.Backup } | Measure-Object
+                $Tasks | Where-Object { $_.BackupOk } | Measure-Object
             ).Count
             restores     = (
-                $Tasks | Where-Object { $_.Restore } | Measure-Object
+                $Tasks | Where-Object { $_.RestoreOk } | Measure-Object
             ).Count
             jobErrors    = ($Tasks.jobErrors | Measure-Object).Count
             systemErrors = ($Error.Exception.Message | Measure-Object).Count

@@ -100,8 +100,8 @@ Describe 'send an e-mail to the admin when' {
                         CopySourceToDestinationFile = 4
                     }
                     ComputerName      = @{
-                        Source      = $env:COMPUTERNAME
-                        Destination = $env:COMPUTERNAME
+                        Backup  = $env:COMPUTERNAME
+                        Restore = $env:COMPUTERNAME
                     }
                     Backup            = @{
                         Query  = "EXECUTE dbo.DatabaseBackup"
@@ -132,8 +132,8 @@ Describe 'send an e-mail to the admin when' {
                         }
                         # ComputerName      = @(
                         #     @{
-                        #         Source      = $env:COMPUTERNAME
-                        #         Destination = $env:COMPUTERNAME
+                        #         Backup      = $env:COMPUTERNAME
+                        #         Restore = $env:COMPUTERNAME
                         #     }
                         # )
                         Backup            = @{
@@ -155,7 +155,7 @@ Describe 'send an e-mail to the admin when' {
                         $EntryType -eq 'Error'
                     }
                 }
-                It 'Source is missing' {
+                It 'Backup is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
@@ -163,8 +163,8 @@ Describe 'send an e-mail to the admin when' {
                             CopySourceToDestinationFile = 4
                         }
                         ComputerName      = @{
-                            # Source      = $env:COMPUTERNAME
-                            Destination = $env:COMPUTERNAME
+                            # Backup      = $env:COMPUTERNAME
+                            Restore = $env:COMPUTERNAME
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -179,13 +179,13 @@ Describe 'send an e-mail to the admin when' {
                     .$testScript @testParams
                 
                     Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
-                    (&$MailAdminParams) -and ($Message -like "*$ImportFile*No 'Source' computer name found in 'ComputerName'*")
+                    (&$MailAdminParams) -and ($Message -like "*$ImportFile*No 'Backup' computer name found in 'ComputerName'*")
                     }
                     Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
                         $EntryType -eq 'Error'
                     }
                 }
-                It 'Destination is missing' {
+                It 'Restore is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
@@ -193,8 +193,8 @@ Describe 'send an e-mail to the admin when' {
                             CopySourceToDestinationFile = 4
                         }
                         ComputerName      = @{
-                            Source = $env:COMPUTERNAME
-                            # Destination = $env:COMPUTERNAME
+                            Backup = $env:COMPUTERNAME
+                            # Restore = $env:COMPUTERNAME
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -209,7 +209,7 @@ Describe 'send an e-mail to the admin when' {
                     .$testScript @testParams
                 
                     Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
-                    (&$MailAdminParams) -and ($Message -like "*$ImportFile*No 'Destination' computer name found in 'ComputerName'*")
+                    (&$MailAdminParams) -and ($Message -like "*$ImportFile*No 'Restore' computer name found in 'ComputerName'*")
                     }
                     Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
                         $EntryType -eq 'Error'
@@ -224,12 +224,12 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @(
                             @{
-                                Source      = $env:COMPUTERNAME
-                                Destination = $env:COMPUTERNAME
+                                Backup  = $env:COMPUTERNAME
+                                Restore = $env:COMPUTERNAME
                             },
                             @{
-                                Source      = $env:COMPUTERNAME
-                                Destination = $env:COMPUTERNAME
+                                Backup  = $env:COMPUTERNAME
+                                Restore = $env:COMPUTERNAME
                             }
                         )
                         Backup            = @{
@@ -245,7 +245,7 @@ Describe 'send an e-mail to the admin when' {
                     .$testScript @testParams
                 
                     Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
-                    (&$MailAdminParams) -and ($Message -like "*$ImportFile*Duplicate combination found in 'ComputerName': Source: '$env:COMPUTERNAME' Destination '$env:COMPUTERNAME'*")
+                    (&$MailAdminParams) -and ($Message -like "*$ImportFile*Duplicate combination found in 'ComputerName': Backup: '$env:COMPUTERNAME' Restore '$env:COMPUTERNAME'*")
                     }
                     Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
                         $EntryType -eq 'Error'
@@ -261,8 +261,8 @@ Describe 'send an e-mail to the admin when' {
                             CopySourceToDestinationFile = 4
                         }
                         ComputerName      = @{
-                            Source      = $env:COMPUTERNAME
-                            Destination = $env:COMPUTERNAME
+                            Backup  = $env:COMPUTERNAME
+                            Restore = $env:COMPUTERNAME
                         }
                         # Backup       = @{
                         #     Query  = "EXECUTE dbo.DatabaseBackup"
@@ -291,8 +291,8 @@ Describe 'send an e-mail to the admin when' {
                             CopySourceToDestinationFile = 4
                         }
                         ComputerName      = @{
-                            Source      = $env:COMPUTERNAME
-                            Destination = $env:COMPUTERNAME
+                            Backup  = $env:COMPUTERNAME
+                            Restore = $env:COMPUTERNAME
                         }
                         Backup            = @{
                             # Query  = "EXECUTE dbo.DatabaseBackup"
@@ -321,8 +321,8 @@ Describe 'send an e-mail to the admin when' {
                             CopySourceToDestinationFile = 4
                         }
                         ComputerName      = @{
-                            Source      = $env:COMPUTERNAME
-                            Destination = $env:COMPUTERNAME
+                            Backup  = $env:COMPUTERNAME
+                            Restore = $env:COMPUTERNAME
                         }
                         Backup            = @{
                             Query = "EXECUTE dbo.DatabaseBackup"
@@ -353,8 +353,8 @@ Describe 'send an e-mail to the admin when' {
                             CopySourceToDestinationFile = 4
                         }
                         ComputerName      = @{
-                            Source      = $env:COMPUTERNAME
-                            Destination = $env:COMPUTERNAME
+                            Backup  = $env:COMPUTERNAME
+                            Restore = $env:COMPUTERNAME
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -383,8 +383,8 @@ Describe 'send an e-mail to the admin when' {
                             CopySourceToDestinationFile = 4
                         }
                         ComputerName      = @{
-                            Source      = $env:COMPUTERNAME
-                            Destination = $env:COMPUTERNAME
+                            Backup  = $env:COMPUTERNAME
+                            Restore = $env:COMPUTERNAME
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -413,8 +413,8 @@ Describe 'send an e-mail to the admin when' {
                             CopySourceToDestinationFile = 4
                         }
                         ComputerName      = @{
-                            Source      = $env:COMPUTERNAME
-                            Destination = $env:COMPUTERNAME
+                            Backup  = $env:COMPUTERNAME
+                            Restore = $env:COMPUTERNAME
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -446,8 +446,8 @@ Describe 'send an e-mail to the admin when' {
                         # }
                         ComputerName = @(
                             @{
-                                Source      = $env:COMPUTERNAME
-                                Destination = $env:COMPUTERNAME
+                                Backup  = $env:COMPUTERNAME
+                                Restore = $env:COMPUTERNAME
                             }
                         )
                         Backup       = @{
@@ -478,8 +478,8 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @(
                             @{
-                                Source      = $env:COMPUTERNAME
-                                Destination = $env:COMPUTERNAME
+                                Backup  = $env:COMPUTERNAME
+                                Restore = $env:COMPUTERNAME
                             }
                         )
                         Backup            = @{
@@ -510,8 +510,8 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @(
                             @{
-                                Source      = $env:COMPUTERNAME
-                                Destination = $env:COMPUTERNAME
+                                Backup  = $env:COMPUTERNAME
+                                Restore = $env:COMPUTERNAME
                             }
                         )
                         Backup            = @{
@@ -560,8 +560,8 @@ Describe 'when tests pass' {
             }
             ComputerName      = @(
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = $env:COMPUTERNAME
+                    Backup  = $env:COMPUTERNAME
+                    Restore = $env:COMPUTERNAME
                 }
             )
             Backup            = @{
@@ -581,10 +581,10 @@ Describe 'when tests pass' {
         . $testScript @testParams
     }
     Context  'create the folder' {
-        It 'backup on the source computer' {
+        It 'backup on the backup computer' {
             $testBackupFolder | Should -Exist
         }
-        It 'restore on the destination computer' {
+        It 'restore on the restore computer' {
             $testRestoreFile | Split-Path | Should -Exist
         }
     }
@@ -598,12 +598,12 @@ Describe 'when tests pass' {
         }
     }
     Context 'copy the most recent backup file' {
-        It 'from the source to the destination computer' {
+        It 'from the backup to the restore computer' {
             $testRestoreFile | Should -Exist
         }
     }
     Context 'in SQL' {
-        It 'restore the database on the destination computer' {
+        It 'restore the database on the restore computer' {
             Should -Invoke  Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
             ($ArgumentList[0] -eq $env:COMPUTERNAME) -and
             ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
@@ -615,10 +615,10 @@ Describe 'when tests pass' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = $env:COMPUTERNAME
-                    Backup      = $true
-                    Restore     = $true
+                    Backup      = $env:COMPUTERNAME
+                    Restore     = $env:COMPUTERNAME
+                    BackupOk    = $true
+                    RestoreOk   = $true
                     Error       = ''
                     BackupFile  = $testBackupFile
                     RestoreFile = $testRestoreFile
@@ -638,9 +638,9 @@ Describe 'when tests pass' {
         It 'with the correct data in the rows' {
             foreach ($testRow in $testExportedExcelRows) {
                 $actualRow = $actual | Where-Object {
-                    $_.Destination -eq $testRow.Destination
+                    $_.Restore -eq $testRow.Restore
                 }
-                $actualRow.Source | Should -Be $testRow.Source
+                $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Restore | Should -Be $testRow.Restore
                 $actualRow.Error | Should -Be $testRow.Error
@@ -684,7 +684,7 @@ Describe 'when tests pass' {
         }
     }
 }
-Describe 'backup only on unique source computers' {
+Describe 'backup only on unique backup computers' {
     BeforeAll {
         Mock Start-Job {
             & $realCmdLet.StartJob -Scriptblock { 
@@ -709,12 +709,12 @@ Describe 'backup only on unique source computers' {
             }
             ComputerName      = @(
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = $env:COMPUTERNAME
+                    Backup  = $env:COMPUTERNAME
+                    Restore = $env:COMPUTERNAME
                 },
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = 'P2'
+                    Backup  = $env:COMPUTERNAME
+                    Restore = 'P2'
                 }
             )
             Backup            = @{
@@ -731,10 +731,10 @@ Describe 'backup only on unique source computers' {
         . $testScript @testParams
     }
     Context 'a folder is created for' {
-        It 'the backup on the source computer' {
+        It 'the backup on the backup computer' {
             $testBackupFolder | Should -Exist
         }
-        It 'the restore on the destination computer' {
+        It 'the restore on the restore computer' {
             $testRestoreFile | Split-Path | Should -Exist
         }
     } 
@@ -746,7 +746,7 @@ Describe 'backup only on unique source computers' {
         }
     }
     Context 'copy the most recent backup file' {
-        It 'from the source to the destination computer' {
+        It 'from the backup to the restore computer' {
             $testRestoreFile | Should -Exist
         }
     } 
@@ -754,19 +754,19 @@ Describe 'backup only on unique source computers' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = $env:COMPUTERNAME
-                    Backup      = $true
-                    Restore     = $true
+                    Backup      = $env:COMPUTERNAME
+                    Restore     = $env:COMPUTERNAME
+                    BackupOk    = $true
+                    RestoreOk   = $true
                     Error       = ''
                     BackupFile  = $testBackupFile
                     RestoreFile = $testRestoreFile
                 },
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = 'P2'
-                    Backup      = $true
-                    Restore     = $false
+                    Backup      = $env:COMPUTERNAME
+                    Restore     = 'P2'
+                    BackupOk    = $true
+                    RestoreOk   = $false
                     Error       = "Computer 'P2' not online"
                     BackupFile  = $null
                     RestoreFile = $null
@@ -786,9 +786,9 @@ Describe 'backup only on unique source computers' {
         It 'with the correct data in the rows' {
             foreach ($testRow in $testExportedExcelRows) {
                 $actualRow = $actual | Where-Object {
-                    $_.Destination -eq $testRow.Destination
+                    $_.Restore -eq $testRow.Restore
                 }
-                $actualRow.Source | Should -Be $testRow.Source
+                $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Restore | Should -Be $testRow.Restore
                 $actualRow.Error | Should -Be $testRow.Error
@@ -832,7 +832,7 @@ Describe 'backup only on unique source computers' {
         }
     } 
 } -Tag test
-Describe 'when the source computer is offline' {
+Describe 'when the backup computer is offline' {
     BeforeAll {
         Mock Start-Job 
 
@@ -844,8 +844,8 @@ Describe 'when the source computer is offline' {
             }
             ComputerName      = @(
                 @{
-                    Source      = 'pcDown'
-                    Destination = $env:COMPUTERNAME
+                    Backup  = 'pcDown'
+                    Restore = $env:COMPUTERNAME
                 }
             )
             Backup            = @{
@@ -865,10 +865,10 @@ Describe 'when the source computer is offline' {
         . $testScript @testParams
     }
     Context  'create no folder for' {
-        It 'backup on the source computer' {
+        It 'backup on the backup computer' {
             $testBackupFolder | Should -Not -Exist
         }
-        It 'restore on the destination computer' {
+        It 'restore on the restore computer' {
             $testRestoreFile | Split-Path | Should -Not -Exist
         }
     }
@@ -879,10 +879,10 @@ Describe 'when the source computer is offline' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Source      = 'pcDown'
-                    Destination = $env:COMPUTERNAME
-                    Backup      = $false
-                    Restore     = $false
+                    Backup      = 'pcDown'
+                    Restore     = $env:COMPUTERNAME
+                    BackupOk    = $false
+                    RestoreOk   = $false
                     Error       = "Computer 'pcDown' not online"
                     BackupFile  = $null
                     RestoreFile = $null
@@ -902,9 +902,9 @@ Describe 'when the source computer is offline' {
         It 'with the correct data in the rows' {
             foreach ($testRow in $testExportedExcelRows) {
                 $actualRow = $actual | Where-Object {
-                    $_.Destination -eq $testRow.Destination
+                    $_.Restore -eq $testRow.Restore
                 }
-                $actualRow.Source | Should -Be $testRow.Source
+                $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Restore | Should -Be $testRow.Restore
                 $actualRow.Error | Should -Be $testRow.Error
@@ -948,7 +948,7 @@ Describe 'when the source computer is offline' {
         }
     }
 } 
-Describe 'when the destination computer is offline' {
+Describe 'when the restore computer is offline' {
     BeforeAll {
         Mock Start-Job 
 
@@ -960,8 +960,8 @@ Describe 'when the destination computer is offline' {
             }
             ComputerName      = @(
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = 'pcDown'
+                    Backup  = $env:COMPUTERNAME
+                    Restore = 'pcDown'
                 }
             )
             Backup            = @{
@@ -981,10 +981,10 @@ Describe 'when the destination computer is offline' {
         . $testScript @testParams
     }
     Context  'create no folder for' {
-        It 'backup on the source computer' {
+        It 'backup on the backup computer' {
             $testBackupFolder | Should -Not -Exist
         }
-        It 'restore on the destination computer' {
+        It 'restore on the restore computer' {
             $testRestoreFile | Split-Path | Should -Not -Exist
         }
     }
@@ -995,10 +995,10 @@ Describe 'when the destination computer is offline' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = 'pcDown'
-                    Backup      = $false
-                    Restore     = $false
+                    Backup      = $env:COMPUTERNAME
+                    Restore     = 'pcDown'
+                    BackupOk    = $false
+                    RestoreOk   = $false
                     Error       = "Computer 'pcDown' not online"
                     BackupFile  = $null
                     RestoreFile = $null
@@ -1018,9 +1018,9 @@ Describe 'when the destination computer is offline' {
         It 'with the correct data in the rows' {
             foreach ($testRow in $testExportedExcelRows) {
                 $actualRow = $actual | Where-Object {
-                    $_.Destination -eq $testRow.Destination
+                    $_.Restore -eq $testRow.Restore
                 }
-                $actualRow.Source | Should -Be $testRow.Source
+                $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Restore | Should -Be $testRow.Restore
                 $actualRow.Error | Should -Be $testRow.Error
@@ -1083,8 +1083,8 @@ Describe 'when the backup fails' {
             }
             ComputerName      = @(
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = $env:COMPUTERNAME
+                    Backup  = $env:COMPUTERNAME
+                    Restore = $env:COMPUTERNAME
                 }
             )
             Backup            = @{
@@ -1101,10 +1101,10 @@ Describe 'when the backup fails' {
         . $testScript @testParams
     }
     Context 'a folder is created for' {
-        It 'the backup on the source computer' {
+        It 'the backup on the backup computer' {
             $testBackupFolder | Should -Exist
         }
-        It 'the restore on the destination computer' {
+        It 'the restore on the restore computer' {
             $testRestoreFile | Split-Path | Should -Exist
         }
     }
@@ -1124,10 +1124,10 @@ Describe 'when the backup fails' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = $env:COMPUTERNAME
-                    Backup      = $false
-                    Restore     = $false
+                    Backup      = $env:COMPUTERNAME
+                    Restore     = $env:COMPUTERNAME
+                    BackupOk    = $false
+                    RestoreOk   = $false
                     Error       = 'oops'
                     BackupFile  = $null
                     RestoreFile = $null
@@ -1147,9 +1147,9 @@ Describe 'when the backup fails' {
         It 'with the correct data in the rows' {
             foreach ($testRow in $testExportedExcelRows) {
                 $actualRow = $actual | Where-Object {
-                    $_.Destination -eq $testRow.Destination
+                    $_.Restore -eq $testRow.Restore
                 }
-                $actualRow.Source | Should -Be $testRow.Source
+                $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Restore | Should -Be $testRow.Restore
                 $actualRow.Error | Should -Be $testRow.Error
@@ -1218,8 +1218,8 @@ Describe 'when the restore fails' {
             }
             ComputerName      = @(
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = $env:COMPUTERNAME
+                    Backup  = $env:COMPUTERNAME
+                    Restore = $env:COMPUTERNAME
                 }
             )
             Backup            = @{
@@ -1236,10 +1236,10 @@ Describe 'when the restore fails' {
         . $testScript @testParams
     }
     Context 'a folder is created for' {
-        It 'the backup on the source computer' {
+        It 'the backup on the backup computer' {
             $testBackupFolder | Should -Exist
         }
-        It 'the restore on the destination computer' {
+        It 'the restore on the restore computer' {
             $testRestoreFile | Split-Path | Should -Exist
         }
     } 
@@ -1256,7 +1256,7 @@ Describe 'when the restore fails' {
         }
     }
     Context 'copy the most recent backup file' {
-        It 'from the source to the destination computer' {
+        It 'from the backup to the restore computer' {
             $testRestoreFile | Should -Exist
         }
     } 
@@ -1264,10 +1264,10 @@ Describe 'when the restore fails' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Source      = $env:COMPUTERNAME
-                    Destination = $env:COMPUTERNAME
-                    Backup      = $true
-                    Restore     = $false
+                    Backup      = $env:COMPUTERNAME
+                    Restore     = $env:COMPUTERNAME
+                    BackupOk    = $true
+                    RestoreOk   = $false
                     Error       = 'oops'
                     BackupFile  = $testBackupFile
                     RestoreFile = $testRestoreFile
@@ -1287,9 +1287,9 @@ Describe 'when the restore fails' {
         It 'with the correct data in the rows' {
             foreach ($testRow in $testExportedExcelRows) {
                 $actualRow = $actual | Where-Object {
-                    $_.Destination -eq $testRow.Destination
+                    $_.Restore -eq $testRow.Restore
                 }
-                $actualRow.Source | Should -Be $testRow.Source
+                $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Backup | Should -Be $testRow.Backup
                 $actualRow.Restore | Should -Be $testRow.Restore
                 $actualRow.Error | Should -Be $testRow.Error
