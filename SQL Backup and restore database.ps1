@@ -1,3 +1,5 @@
+#Requires -Modules ImportExcel
+
 <# 
     .SYNOPSIS
         Create a database backup on one computer and restore it on another.
