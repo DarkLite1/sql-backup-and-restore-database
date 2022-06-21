@@ -1,4 +1,4 @@
-#Requires -Modules ImportExcel
+#Requires -Modules ImportExcel, Toolbox.HTML
 
 <# 
     .SYNOPSIS
