@@ -353,6 +353,9 @@ Process {
 
                 if (-not $jobErrors) {
                     $t.BackupOk = $true
+
+                    $M = 'No job errors'
+                    Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
                 }
             }
         }
@@ -465,6 +468,9 @@ Process {
 
             if (-not $jobErrors) {
                 $task.RestoreFile = $task.UncPath.Restore
+
+                $M = 'No job errors'
+                Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
             }
           
             $task.Job = $null
@@ -529,6 +535,9 @@ Process {
         
             if (-not $jobErrors) {
                 $task.RestoreOk = $true
+
+                $M = 'No job errors'
+                Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
             }
 
             $task.Job = $null
