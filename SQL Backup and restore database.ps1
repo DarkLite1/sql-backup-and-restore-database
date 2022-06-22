@@ -112,6 +112,8 @@ Begin {
         Write-EventLog @EventStartParams
         $scriptStartTime = Get-ScriptRuntimeHC -Start
 
+        $error.Clear()
+
         Get-Job | Remove-Job -Force -EA Ignore
 
         #region Logging
