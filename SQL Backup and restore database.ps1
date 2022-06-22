@@ -422,7 +422,7 @@ Process {
             }
         
             $M = "Copy backup file {0} to '{1}'" -f 
-            $invokeParams.ArgumentList[0], $invokeParams.ArgumentList[0]
+            $invokeParams.ArgumentList[0], $invokeParams.ArgumentList[1]
             Write-Verbose $M; Write-EventLog @EventOutParams -Message $M
         
             $task.Job = Start-Job @invokeParams
