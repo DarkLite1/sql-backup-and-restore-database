@@ -194,6 +194,15 @@ Begin {
         if (-not ($file.MaxConcurrentJobs.CopyBackupFileToRestoreComputer)) {
             throw "Input file '$ImportFile': Property 'CopyBackupFileToRestoreComputer' not found in property 'MaxConcurrentJobs'."
         }
+
+        if (
+            $file.PSObject.Properties.Name -notContains 'ExecuteRemote'
+        ) {
+            throw "Input file '$ImportFile': Property 'ExecuteRemote' not found."
+        }
+        if (-not ($file.ExecuteRemote -is [boolean])) {
+            throw "Input file '$ImportFile': The value '$($file.ExecuteRemote)' in 'ExecuteRemote' is not a true false value."
+        }
         #endregion
 
         #region Add job properties and unc paths

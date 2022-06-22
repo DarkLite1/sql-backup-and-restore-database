@@ -96,7 +96,7 @@ Describe 'send an e-mail to the admin when' {
                 @{
                     # MailTo       = @('bob@contoso.com')
                     MaxConcurrentJobs = @{
-                        BackupAndRestore            = 6
+                        BackupAndRestore                = 6
                         CopyBackupFileToRestoreComputer = 4
                     }
                     ComputerName      = @{
@@ -111,6 +111,7 @@ Describe 'send an e-mail to the admin when' {
                         Query = "RESTORE DATABASE"
                         File  = $testRestoreFile
                     }
+                    ExecuteRemote     = $false
                 } | ConvertTo-Json | Out-File @testOutParams
                 
                 .$testScript @testParams
@@ -127,7 +128,7 @@ Describe 'send an e-mail to the admin when' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
-                            BackupAndRestore            = 6
+                            BackupAndRestore                = 6
                             CopyBackupFileToRestoreComputer = 4
                         }
                         # ComputerName      = @(
@@ -144,6 +145,7 @@ Describe 'send an e-mail to the admin when' {
                             Query = "RESTORE DATABASE"
                             File  = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                     
                     .$testScript @testParams
@@ -159,7 +161,7 @@ Describe 'send an e-mail to the admin when' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
-                            BackupAndRestore            = 6
+                            BackupAndRestore                = 6
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
@@ -174,6 +176,7 @@ Describe 'send an e-mail to the admin when' {
                             Query = "RESTORE DATABASE"
                             File  = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                 
                     .$testScript @testParams
@@ -189,7 +192,7 @@ Describe 'send an e-mail to the admin when' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
-                            BackupAndRestore            = 6
+                            BackupAndRestore                = 6
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
@@ -204,6 +207,7 @@ Describe 'send an e-mail to the admin when' {
                             Query = "RESTORE DATABASE"
                             File  = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                 
                     .$testScript @testParams
@@ -219,7 +223,7 @@ Describe 'send an e-mail to the admin when' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
-                            BackupAndRestore            = 6
+                            BackupAndRestore                = 6
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @(
@@ -240,6 +244,7 @@ Describe 'send an e-mail to the admin when' {
                             Query = "RESTORE DATABASE"
                             File  = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                 
                     .$testScript @testParams
@@ -257,7 +262,7 @@ Describe 'send an e-mail to the admin when' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
-                            BackupAndRestore            = 6
+                            BackupAndRestore                = 6
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
@@ -272,6 +277,7 @@ Describe 'send an e-mail to the admin when' {
                             Query = "RESTORE DATABASE"
                             File  = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                     
                     .$testScript @testParams
@@ -287,7 +293,7 @@ Describe 'send an e-mail to the admin when' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
-                            BackupAndRestore            = 6
+                            BackupAndRestore                = 6
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
@@ -302,6 +308,7 @@ Describe 'send an e-mail to the admin when' {
                             Query = "RESTORE DATABASE"
                             File  = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                     
                     .$testScript @testParams
@@ -317,7 +324,7 @@ Describe 'send an e-mail to the admin when' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
-                            BackupAndRestore            = 6
+                            BackupAndRestore                = 6
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
@@ -332,6 +339,7 @@ Describe 'send an e-mail to the admin when' {
                             Query = "RESTORE DATABASE"
                             File  = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                     
                     .$testScript @testParams
@@ -349,7 +357,7 @@ Describe 'send an e-mail to the admin when' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
-                            BackupAndRestore            = 6
+                            BackupAndRestore                = 6
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
@@ -364,6 +372,7 @@ Describe 'send an e-mail to the admin when' {
                         #     Query = "RESTORE DATABASE"
                         #     File  = $testRestoreFile
                         # }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                     
                     .$testScript @testParams
@@ -379,7 +388,7 @@ Describe 'send an e-mail to the admin when' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
-                            BackupAndRestore            = 6
+                            BackupAndRestore                = 6
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
@@ -394,6 +403,7 @@ Describe 'send an e-mail to the admin when' {
                             # Query = "RESTORE DATABASE"
                             File = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                     
                     .$testScript @testParams
@@ -409,7 +419,7 @@ Describe 'send an e-mail to the admin when' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
-                            BackupAndRestore            = 6
+                            BackupAndRestore                = 6
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
@@ -424,6 +434,7 @@ Describe 'send an e-mail to the admin when' {
                             Query = "RESTORE DATABASE"
                             # File  = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                     
                     .$testScript @testParams
@@ -490,6 +501,7 @@ Describe 'send an e-mail to the admin when' {
                             Query = "RESTORE DATABASE"
                             File  = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                     
                     .$testScript @testParams
@@ -522,6 +534,7 @@ Describe 'send an e-mail to the admin when' {
                             Query = "RESTORE DATABASE"
                             File  = $testRestoreFile
                         }
+                        ExecuteRemote     = $false
                     } | ConvertTo-Json | Out-File @testOutParams
                     
                     .$testScript @testParams
@@ -534,6 +547,74 @@ Describe 'send an e-mail to the admin when' {
                     }
                 }
             }
+            Context 'ExecuteRemote' {
+                It 'ExecuteRemote is missing' {
+                    @{
+                        MailTo            = @('bob@contoso.com')
+                        MaxConcurrentJobs = @{
+                            BackupAndRestore                = 6
+                            CopyBackupFileToRestoreComputer = 4
+                        }
+                        ComputerName      = @(
+                            @{
+                                Backup  = $env:COMPUTERNAME
+                                Restore = $env:COMPUTERNAME
+                            }
+                        )
+                        Backup            = @{
+                            Query  = "EXECUTE dbo.DatabaseBackup"
+                            Folder = $testBackupFolder 
+                        }
+                        Restore           = @{
+                            Query = "RESTORE DATABASE"
+                            File  = $testRestoreFile
+                        }
+                        # ExecuteRemote     = $false
+                    } | ConvertTo-Json | Out-File @testOutParams
+                    
+                    .$testScript @testParams
+                    
+                    Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
+                        (&$MailAdminParams) -and ($Message -like "*$ImportFile*Property 'ExecuteRemote' not found*")
+                    }
+                    Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
+                        $EntryType -eq 'Error'
+                    }
+                }
+                It 'ExecuteRemote is not a boolean' {
+                    @{
+                        MailTo            = @('bob@contoso.com')
+                        MaxConcurrentJobs = @{
+                            BackupAndRestore                = 6
+                            CopyBackupFileToRestoreComputer = 4
+                        }
+                        ComputerName      = @(
+                            @{
+                                Backup  = $env:COMPUTERNAME
+                                Restore = $env:COMPUTERNAME
+                            }
+                        )
+                        Backup            = @{
+                            Query  = "EXECUTE dbo.DatabaseBackup"
+                            Folder = $testBackupFolder 
+                        }
+                        Restore           = @{
+                            Query = "RESTORE DATABASE"
+                            File  = $testRestoreFile
+                        }
+                        ExecuteRemote     = 'yes'
+                    } | ConvertTo-Json | Out-File @testOutParams
+                    
+                    .$testScript @testParams
+                    
+                    Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
+                        (&$MailAdminParams) -and ($Message -like "*$ImportFile*The value 'yes' in 'ExecuteRemote' is not a true false value*")
+                    }
+                    Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
+                        $EntryType -eq 'Error'
+                    }
+                }
+            } -Tag test
         }
     }
 } 
@@ -555,7 +636,7 @@ Describe 'when tests pass' {
         @{
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
-                BackupAndRestore            = 6
+                BackupAndRestore                = 6
                 CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
@@ -572,6 +653,7 @@ Describe 'when tests pass' {
                 Query = "RESTORE DATABASE"
                 File  = $testRestoreFile
             }
+            ExecuteRemote     = $false
         } | ConvertTo-Json | Out-File @testOutParams
 
         $testBackupFolder | Should -Not -Exist
@@ -704,7 +786,7 @@ Describe 'backup only on unique backup computers' {
         @{
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
-                BackupAndRestore            = 6
+                BackupAndRestore                = 6
                 CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
@@ -725,6 +807,7 @@ Describe 'backup only on unique backup computers' {
                 Query = "RESTORE DATABASE"
                 File  = $testRestoreFile
             }
+            ExecuteRemote     = $false
         } | ConvertTo-Json | Out-File @testOutParams
 
         $Error.Clear()
@@ -839,7 +922,7 @@ Describe 'when the backup computer is offline' {
         @{
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
-                BackupAndRestore            = 6
+                BackupAndRestore                = 6
                 CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
@@ -856,6 +939,7 @@ Describe 'when the backup computer is offline' {
                 Query = "RESTORE DATABASE"
                 File  = $testRestoreFile
             }
+            ExecuteRemote     = $false
         } | ConvertTo-Json | Out-File @testOutParams
 
         $testBackupFolder | Should -Not -Exist
@@ -955,7 +1039,7 @@ Describe 'when the restore computer is offline' {
         @{
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
-                BackupAndRestore            = 6
+                BackupAndRestore                = 6
                 CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
@@ -972,6 +1056,7 @@ Describe 'when the restore computer is offline' {
                 Query = "RESTORE DATABASE"
                 File  = $testRestoreFile
             }
+            ExecuteRemote     = $false
         } | ConvertTo-Json | Out-File @testOutParams
 
         $testBackupFolder | Should -Not -Exist
@@ -1078,7 +1163,7 @@ Describe 'when the backup fails' {
         @{
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
-                BackupAndRestore            = 6
+                BackupAndRestore                = 6
                 CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
@@ -1095,6 +1180,7 @@ Describe 'when the backup fails' {
                 Query = "RESTORE DATABASE"
                 File  = $testRestoreFile
             }
+            ExecuteRemote     = $false
         } | ConvertTo-Json | Out-File @testOutParams
 
         $Error.Clear()
@@ -1213,7 +1299,7 @@ Describe 'when the restore fails' {
         @{
             MailTo            = @('bob@contoso.com')
             MaxConcurrentJobs = @{
-                BackupAndRestore            = 6
+                BackupAndRestore                = 6
                 CopyBackupFileToRestoreComputer = 4
             }
             ComputerName      = @(
@@ -1230,6 +1316,7 @@ Describe 'when the restore fails' {
                 Query = "RESTORE DATABASE"
                 File  = $testRestoreFile
             }
+            ExecuteRemote     = $false
         } | ConvertTo-Json | Out-File @testOutParams
 
         $Error.Clear()
