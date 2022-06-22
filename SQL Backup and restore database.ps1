@@ -348,7 +348,7 @@ Process {
 
                     $M = "Database backup error on '{0}': {1}" -f 
                     $t.Backup, $e.ToString()
-                    Write-Verbose $M; Write-EventLog @EventErrorParams -Message $M
+                    Write-Warning $M; Write-EventLog @EventErrorParams -Message $M
                 }
 
                 if (-not $jobErrors) {
@@ -463,7 +463,7 @@ Process {
                 $Error.Remove($e)
         
                 $M = $e.ToString()
-                Write-Verbose $M; Write-EventLog @EventErrorParams -Message $M
+                Write-Warning $M; Write-EventLog @EventErrorParams -Message $M
             }
 
             if (-not $jobErrors) {
@@ -530,7 +530,7 @@ Process {
                 $Error.Remove($e)
         
                 $M = $e.ToString()
-                Write-Verbose $M; Write-EventLog @EventErrorParams -Message $M
+                Write-Warning $M; Write-EventLog @EventErrorParams -Message $M
             }
         
             if (-not $jobErrors) {
