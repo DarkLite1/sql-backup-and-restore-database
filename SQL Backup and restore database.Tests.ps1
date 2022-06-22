@@ -614,7 +614,7 @@ Describe 'send an e-mail to the admin when' {
                         $EntryType -eq 'Error'
                     }
                 }
-            } -Tag test
+            }
         }
     }
 } 
@@ -659,7 +659,6 @@ Describe 'when tests pass' {
         $testBackupFolder | Should -Not -Exist
         $testRestoreFile | Should -Not -Exist
 
-        $Error.Clear()
         . $testScript @testParams
     }
     Context  'create the folder' {
@@ -810,7 +809,6 @@ Describe 'backup only on unique backup computers' {
             ExecuteRemote     = $false
         } | ConvertTo-Json | Out-File @testOutParams
 
-        $Error.Clear()
         . $testScript @testParams
     }
     Context 'a folder is created for' {
@@ -914,7 +912,7 @@ Describe 'backup only on unique backup computers' {
             }
         }
     } 
-} -Tag test
+}
 Describe 'when the backup computer is offline' {
     BeforeAll {
         Mock Start-Job 
@@ -945,7 +943,6 @@ Describe 'when the backup computer is offline' {
         $testBackupFolder | Should -Not -Exist
         $testRestoreFile | Should -Not -Exist
 
-        $Error.Clear()
         . $testScript @testParams
     }
     Context  'create no folder for' {
@@ -1062,7 +1059,6 @@ Describe 'when the restore computer is offline' {
         $testBackupFolder | Should -Not -Exist
         $testRestoreFile | Should -Not -Exist
 
-        $Error.Clear()
         . $testScript @testParams
     }
     Context  'create no folder for' {
@@ -1183,7 +1179,6 @@ Describe 'when the backup fails' {
             ExecuteRemote     = $false
         } | ConvertTo-Json | Out-File @testOutParams
 
-        $Error.Clear()
         . $testScript @testParams
     }
     Context 'a folder is created for' {
@@ -1319,7 +1314,6 @@ Describe 'when the restore fails' {
             ExecuteRemote     = $false
         } | ConvertTo-Json | Out-File @testOutParams
 
-        $Error.Clear()
         . $testScript @testParams
     }
     Context 'a folder is created for' {
