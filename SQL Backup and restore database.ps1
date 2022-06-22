@@ -315,7 +315,7 @@ Process {
             ($runningJobs | Measure-Object).Count
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
-            $runningJobs | Wait-Job
+            $null = $runningJobs | Wait-Job
         }
         #endregion
 
@@ -438,7 +438,7 @@ Process {
             ($runningJobs | Measure-Object).Count
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
-            $runningJobs | Wait-Job
+            $null = $runningJobs | Wait-Job
         }
         #endregion
         
@@ -503,7 +503,7 @@ Process {
             ($runningJobs | Measure-Object).Count
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
-            $runningJobs | Wait-Job
+            $null = $runningJobs | Wait-Job
         }
         #endregion
         
