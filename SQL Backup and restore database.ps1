@@ -295,7 +295,7 @@ Process {
         #endregion
 
         #region Create database backups on unique backup computers
-        #region Start jobs
+        #region Start backup
         foreach (
             $task in 
             $Tasks | Where-Object { -not $_.JobErrors } | 
@@ -306,11 +306,21 @@ Process {
                 ArgumentList = $task.Backup, $file.Backup.Query, 'Backup'
             }
 
-            $M = "Start database backup on '{0}'" -f 
+            $M = "Start database backup on '{0}' for backup computer '{1}'" -f $(
+                if ($file.ExecuteRemote) { $task.Backup }
+                else { $env:COMPUTERNAME }
+            ),
             $invokeParams.ArgumentList[0]
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
-            $task.Job = Start-Job @invokeParams
+            $task.Job = if ($file.ExecuteRemote) {
+                $invokeParams.ComputerName = $task.Backup
+                $invokeParams.AsJob = $true
+                Invoke-Command @invokeParams
+            }
+            else {
+                Start-Job @invokeParams
+            }
             
             $waitParams = @{
                 Name       = $Tasks.Job | Where-Object { $_ }
@@ -490,7 +500,7 @@ Process {
         #endregion
         
         #region Restore backups
-        #region Start jobs
+        #region Restore backup
         foreach (
             $task in 
             $Tasks | Where-Object { (-not $_.JobErrors) -and ($_.BackupOk) }
@@ -500,11 +510,21 @@ Process {
                 ArgumentList = $task.Restore, $file.Restore.Query, 'Restore'
             }
         
-            $M = "Start database restore on '{0}'" -f 
+            $M = "Start database restore on '{0}' for restore computer '{1}'" -f $(
+                if ($file.ExecuteRemote) { $task.Restore }
+                else { $env:COMPUTERNAME }
+            ),
             $invokeParams.ArgumentList[0]
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-        
-            $task.Job = Start-Job @invokeParams
+
+            $task.Job = if ($file.ExecuteRemote) {
+                $invokeParams.ComputerName = $task.Backup
+                $invokeParams.AsJob = $true
+                Invoke-Command @invokeParams
+            }
+            else {
+                Start-Job @invokeParams
+            }
                     
             $waitParams = @{
                 Name       = $Tasks.Job | Where-Object { $_ }

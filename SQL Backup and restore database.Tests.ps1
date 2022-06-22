@@ -5,8 +5,9 @@ BeforeAll {
     Get-Job | Remove-Job -Force -EA Ignore
     
     $realCmdLet = @{
-        StartJob = Get-Command Start-Job
-        CopyItem = Get-Command Copy-Item
+        StartJob      = Get-Command Start-Job
+        CopyItem      = Get-Command Copy-Item
+        InvokeCommand = Get-Command Invoke-Command
     }
 
     $testOutParams = @{
@@ -1413,4 +1414,168 @@ Describe 'when the restore fails' {
             }
         }
     } 
+}
+Describe 'when ExecuteRemote is true' {
+    BeforeAll {
+        Mock Invoke-Command {
+            & $realCmdLet.StartJob -Scriptblock { 
+                New-Item "$using:TestDrive\backup\a\b\c\d\xyz.bak" -ItemType File
+            }
+        } -ParameterFilter {
+            ($ArgumentList[2] -eq 'Backup')
+        }
+        Mock Invoke-Command {
+            & $realCmdLet.StartJob -Scriptblock { 1 }
+        } -ParameterFilter {
+            ($ArgumentList[2] -eq 'Restore')
+        }
+        Mock Start-Job {
+            'not called'
+        } -ParameterFilter {
+            ($ArgumentList[2] -eq 'Backup')
+        }
+        Mock Start-Job {
+            'not called'
+        } -ParameterFilter {
+            ($ArgumentList[2] -eq 'Restore')
+        }
+
+        @{
+            MailTo            = @('bob@contoso.com')
+            MaxConcurrentJobs = @{
+                BackupAndRestore                = 6
+                CopyBackupFileToRestoreComputer = 4
+            }
+            ComputerName      = @(
+                @{
+                    Backup  = $env:COMPUTERNAME
+                    Restore = $env:COMPUTERNAME
+                }
+            )
+            Backup            = @{
+                Query  = "EXECUTE dbo.DatabaseBackup"
+                Folder = $testBackupFolder 
+            }
+            Restore           = @{
+                Query = "RESTORE DATABASE"
+                File  = $testRestoreFile
+            }
+            ExecuteRemote     = $true
+        } | ConvertTo-Json | Out-File @testOutParams
+
+        . $testScript @testParams
+    }
+    Context  'create the folder' {
+        It 'backup on the backup computer' {
+            $testBackupFolder | Should -Exist
+        }
+        It 'restore on the restore computer' {
+            $testRestoreFile | Split-Path | Should -Exist
+        }
+    }
+    Context 'in SQL' {
+        It 'create a database backup on the remote computer' {
+            Should -Invoke Invoke-Command -Times 1 -Exactly -Scope Describe -ParameterFilter {
+                ($ArgumentList[0] -eq $env:COMPUTERNAME) -and
+                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+                ($ArgumentList[2] -eq 'Backup')
+            }
+        }
+        It 'not from the local computer' {
+            Should -Not -Invoke Start-Job -Scope Describe -ParameterFilter {
+                ($ArgumentList[2] -eq 'Backup')
+            }
+        }
+    }
+    Context 'copy the most recent backup file' {
+        It 'from the backup to the restore computer' {
+            $testRestoreFile | Should -Exist
+        }
+    }
+    Context 'in SQL' {
+        It 'restore the database on the restore computer remotely' {
+            Should -Invoke  Invoke-Command -Times 1 -Exactly -Scope Describe -ParameterFilter {
+                ($ArgumentList[0] -eq $env:COMPUTERNAME) -and
+                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+                ($ArgumentList[2] -eq 'Restore')
+            }
+        }
+        It 'not from the local computer' {
+            Should -Not -Invoke Start-Job -Scope Describe -ParameterFilter {
+                ($ArgumentList[2] -eq 'Restore')
+            }
+        }
+    }
+    Context 'export an Excel file' {
+        BeforeAll {
+            $testExportedExcelRows = @(
+                @{
+                    Backup      = $env:COMPUTERNAME
+                    Restore     = $env:COMPUTERNAME
+                    BackupOk    = $true
+                    RestoreOk   = $true
+                    Error       = ''
+                    BackupFile  = $testBackupFile
+                    RestoreFile = $testRestoreFile
+                }
+            )
+
+            $testExcelLogFile = Get-ChildItem $testParams.LogFolder -File -Recurse -Filter '* - Log.xlsx'
+
+            $actual = Import-Excel -Path $testExcelLogFile.FullName -WorksheetName 'Overview'
+        }
+        It 'to the log folder' {
+            $testExcelLogFile | Should -Not -BeNullOrEmpty
+        }
+        It 'with the correct total rows' {
+            $actual | Should -HaveCount $testExportedExcelRows.Count
+        }
+        It 'with the correct data in the rows' {
+            foreach ($testRow in $testExportedExcelRows) {
+                $actualRow = $actual | Where-Object {
+                    $_.Restore -eq $testRow.Restore
+                }
+                $actualRow.Backup | Should -Be $testRow.Backup
+                $actualRow.Backup | Should -Be $testRow.Backup
+                $actualRow.Restore | Should -Be $testRow.Restore
+                $actualRow.Error | Should -Be $testRow.Error
+                $actualRow.BackupFile | Should -Be $testRow.BackupFile
+                $actualRow.RestoreFile | Should -Be $testRow.RestoreFile
+            }
+        }
+    }
+    Context 'send a mail to the user with' {
+        It 'To Bcc Priority Subject' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                ($To -eq 'bob@contoso.com') -and
+                ($Bcc -eq $ScriptAdmin) -and
+                ($Priority -eq 'Normal') -and
+                ($Subject -eq '1 task, 1 backup, 1 restore')
+            }
+        }
+        It 'Attachments' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                ($Attachments -like '* - Log.xlsx')
+            }
+        }
+        It 'Message' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                ($Message -like (
+                    "*Summary*<th>Total tasks</th>*<td>1</td>*<th>Successful backups</th>*<td>1</td>*<th>Successful restores</th>*<td>1</td>*<th>Errors</th>*<td>0</td>*<p><i>* Check the attachment for details</i></p>*"
+                ))
+            }
+        }
+        It 'Everything' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                ($To -eq 'bob@contoso.com') -and
+                ($Bcc -eq $ScriptAdmin) -and
+                ($Priority -eq 'Normal') -and
+                ($Subject -eq '1 task, 1 backup, 1 restore') -and
+                ($Attachments -like '* - Log.xlsx') -and
+                ($Message -like (
+                    "*Summary*<th>Total tasks</th>*<td>1</td>*<th>Successful backups</th>*<td>1</td>*<th>Successful restores</th>*<td>1</td>*<th>Errors</th>*<td>0</td>*<p><i>* Check the attachment for details</i></p>*"
+                ))
+            }
+        }
+    }
 }
