@@ -518,7 +518,7 @@ Process {
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
             $task.Job = if ($file.ExecuteRemote) {
-                $invokeParams.ComputerName = $task.Backup
+                $invokeParams.ComputerName = $task.Restore
                 $invokeParams.AsJob = $true
                 Invoke-Command @invokeParams
             }
