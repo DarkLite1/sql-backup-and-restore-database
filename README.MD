@@ -7,7 +7,7 @@ This script will create an SQL database backup on one computer and restore it on
 - The back up folder is created on the backup computer and the restore folder on the restore computer.
 - The SQL backup process is started on tbe backup computer.
 - The backup file is copied from the backup computer to the restore computer.
-- The backup is executed on the backup computer.
+- The SQL restore process is started on the restore computer.
 - An e-mail is sent containing the results in an excel file.
 
 # Best practices
