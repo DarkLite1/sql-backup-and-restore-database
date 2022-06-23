@@ -48,10 +48,6 @@
         The path where the backup file will be copied to on the restore 
         computer.
 
-    .PARAMETER ExecuteRemote
-        When 'ExecuteRemote' is set to true the code is ran in a remote session
-        on the remote computer defined in 'Backup' and 'Restore'.
-
     .PARAMETER MailTo
         List of e-mail addresses that will receive the summary email.
 
@@ -230,15 +226,6 @@ Begin {
         if (-not ($file.MaxConcurrentJobs.CopyBackupFileToRestoreComputer)) {
             throw "Input file '$ImportFile': Property 'CopyBackupFileToRestoreComputer' not found in property 'MaxConcurrentJobs'."
         }
-
-        if (
-            $file.PSObject.Properties.Name -notContains 'ExecuteRemote'
-        ) {
-            throw "Input file '$ImportFile': Property 'ExecuteRemote' not found."
-        }
-        if (-not ($file.ExecuteRemote -is [boolean])) {
-            throw "Input file '$ImportFile': The value '$($file.ExecuteRemote)' in 'ExecuteRemote' is not a true false value."
-        }
         #endregion
 
         #region Add job properties and unc paths
@@ -342,21 +329,11 @@ Process {
                 ArgumentList = $task.Backup, $file.Backup.Query, 'Backup'
             }
 
-            $M = "Start database backup on '{0}' for backup computer '{1}'" -f $(
-                if ($file.ExecuteRemote) { $task.Backup }
-                else { $env:COMPUTERNAME }
-            ),
+            $M = "Start database backup on '{0}'" -f 
             $invokeParams.ArgumentList[0]
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
-            $task.Job = if ($file.ExecuteRemote) {
-                $invokeParams.ComputerName = $task.Backup
-                $invokeParams.AsJob = $true
-                Invoke-Command @invokeParams
-            }
-            else {
-                Start-Job @invokeParams
-            }
+            $task.Job = Start-Job @invokeParams
             
             $waitParams = @{
                 Name       = $Tasks.Job | Where-Object { $_ }
@@ -546,21 +523,11 @@ Process {
                 ArgumentList = $task.Restore, $file.Restore.Query, 'Restore'
             }
         
-            $M = "Start database restore on '{0}' for restore computer '{1}'" -f $(
-                if ($file.ExecuteRemote) { $task.Restore }
-                else { $env:COMPUTERNAME }
-            ),
+            $M = "Start database restore on '{0}'" -f 
             $invokeParams.ArgumentList[0]
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
-            $task.Job = if ($file.ExecuteRemote) {
-                $invokeParams.ComputerName = $task.Restore
-                $invokeParams.AsJob = $true
-                Invoke-Command @invokeParams
-            }
-            else {
-                Start-Job @invokeParams
-            }
+            $task.Job = Start-Job @invokeParams
                     
             $waitParams = @{
                 Name       = $Tasks.Job | Where-Object { $_ }
