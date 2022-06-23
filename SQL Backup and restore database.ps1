@@ -669,24 +669,24 @@ End {
         #endregion
 
         #region Creation html results list
-        $summaryHtmlList = "
+        $summaryTable = "
         <table>
             <tr>
                 <th>Total tasks</th>
                 <td>$($counter.tasks)</td>
-            <tr>
+            </tr>
             <tr>
                 <th>Successful backups</th>
                 <td>$($counter.backups)</td>
-            <tr>
+            </tr>
             <tr>
                 <th>Successful restores</th>
                 <td>$($counter.restores)</td>
-            <tr>
+            </tr>
             <tr>
                 <th>Errors</th>
                 <td>$totalErrorCount</td>
-            <tr>
+            </tr>
         </table>
         "
         #endregion
@@ -697,7 +697,7 @@ End {
             Message   = "
                 $systemErrorsHtmlList
                 <p>Summary:</p>
-                $summaryHtmlList"
+                $summaryTable"
             LogFolder = $LogParams.LogFolder
             Header    = $ScriptName
             Save      = $LogFile + ' - Mail.html'
