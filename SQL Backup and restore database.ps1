@@ -13,24 +13,60 @@
         The backup file created on the backup computer is simply copied to the
         restore computer.
 
+    .PARAMETER ComputerName
+        Collection of computer names that connect the source and destination 
+        computer names for the backup and the restore.
+
     .PARAMETER ComputerName.Backup
-        The backup computer name where the database backup will be made. 
+        The computer where the database backup will be made. 
         
     .PARAMETER ComputerName.Restore
-        The restore computer name where the database backup will be restored
+        The computer where the database backup will be restored.
     
     .PARAMETER Backup.Query
-        The query used to backup the database
+        The query used to create the database backup.
 
     .PARAMETER Backup.Folder
-        The folder where the backup file will be created
+        The parent folder where the database backup file will be created. Must
+        be the same as the path used in the 'Backup.Query'.
+        
+        The SQL stored procedure 'dbo.DatabaseBackup' in 'Backup.Query' creates a directory structure with server name, instance name, database name, 
+        and backup type. 
+
+        The most recent file in the folder 'Backup.Folder' is copied to the 
+        path defined in 'Restore.File' on the restore computer and will be used 
+        to start the restore process. 
+        
+        It's best practice to use the database name in the path so when 
+        this script is executed multiple times at the same time, for different 
+        databases, the correct backup files are copied over.
 
     .PARAMETER Restore.Query
-        The query used to restore the database
+        The query used to restore the database.
 
     .PARAMETER Restore.File
         The path where the backup file will be copied to on the restore 
-        computer
+        computer.
+
+    .PARAMETER ExecuteRemote
+        When 'ExecuteRemote' is set to true the code is ran in a remote session
+        on the remote computer defined in 'Backup' and 'Restore'.
+
+    .PARAMETER MailTo
+        List of e-mail addresses that will receive the summary email.
+
+    .PARAMETER MaxConcurrentJobs
+        Defines the maximum number of jobs that are allowed to run at the same 
+        time. This is convenient to throttle job execution so the system does 
+        not get overloaded.
+
+    .PARAMETER MaxConcurrentJobs.BackupAndRestore
+        The number of backup and restore jobs are allowed to run at the same 
+        time.
+
+    .PARAMETER MaxConcurrentJobs.CopyBackupFileToRestoreComputer
+        The maximum number of backup files that are allowed to be copied at the
+        same time.
 #>
 
 [CmdLetBinding()]
