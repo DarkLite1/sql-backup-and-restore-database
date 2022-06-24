@@ -256,7 +256,7 @@ Process {
         }
         #endregion
 
-        #region Create backups on unique backup computers
+        #region Create backups
         foreach (
             $task in 
             $Tasks | Where-Object { -not $_.JobErrors } | 
@@ -267,7 +267,7 @@ Process {
                 Name         = 'Backup'
                 FilePath     = $BackupScriptFile
                 ArgumentList = $task.Backup, $file.Backup.Query, 
-                $task.UncPath.Backup, $task.UncPath.Restore
+                $task.UncPath.Backup
             }
 
             $M = "Backup database on '{0}'" -f $invokeParams.ArgumentList[0]
