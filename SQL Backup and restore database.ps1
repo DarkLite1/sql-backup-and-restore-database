@@ -89,56 +89,6 @@ Begin {
         )
     }
 
-    $copyItemScriptBlock = {
-        Param (
-            [Parameter(Mandatory)]
-            [String]$SourceFile,
-            [Parameter(Mandatory)]
-            [String]$DestinationFile
-        )
-        try {
-            $copyParams = @{
-                LiteralPath = $SourceFile
-                Destination = $DestinationFile
-                Force       = $true
-                ErrorAction = 'Stop'
-            }
-            $null = Copy-Item @copyParams
-        }
-        catch {
-            $M = "Failed copying file '$SourceFile' to '$DestinationFile': $_"
-            $global:error.RemoveAt(0)
-            throw $M
-        }
-    }
-
-    $restoreScriptBlock = {
-        Param (
-            [Parameter(Mandatory)]
-            [String]$ComputerName,
-            [Parameter(Mandatory)]
-            [String]$Query
-        )
-
-        #region Start database restore
-        try {
-            $params = @{
-                ServerInstance    = $ComputerName
-                Query             = $Query
-                QueryTimeout      = '1000'
-                ConnectionTimeout = '20'
-                ErrorAction       = 'Stop'
-            }
-            $null = Invoke-Sqlcmd @params
-        }
-        catch {
-            $M = "Restore failed on '$ComputerName': $_"
-            $global:error.RemoveAt(0)
-            throw $M
-        }
-        #endregion
-    }
-
     try {
         Import-EventLogParamsHC -Source $ScriptName
         Write-EventLog @EventStartParams
@@ -336,10 +286,13 @@ Process {
 
             #region Start restore for completed jobs
             foreach (
-                $finishedBackupTask in 
+                $completedBackup in 
                 $Tasks | Where-Object {
                     ($_.Job.Name -eq 'Backup') -and
-                    ($_.Job.State -eq 'Completed')
+                    (
+                        ($_.Job.State -eq 'Completed') -or 
+                        ($_.Job.State -eq 'Failed')
+                    )
                 }
             ) {
                 #region Get job results and errors
@@ -348,33 +301,38 @@ Process {
                     ErrorVariable = 'jobErrors'
                     ErrorAction   = 'SilentlyContinue'
                 }
-                $jobResult = $finishedBackupTask.Job | 
+                $jobResult = $completedBackup.Job | 
                 Receive-Job @receiveParams
     
-                $finishedBackupTask.LatestBackupFile = $jobResult.LatestBackupFile
-                $finishedBackupTask.BackupOk = $jobResult.BackupOk
-                $finishedBackupTask.CopyOk = $jobResult.CopyOk
-                $finishedBackupTask.Duration = $finishedBackupTask.Job.PSEndTime + $finishedBackupTask.Job.PSBeginTime
+                $completedBackup.BackupOk = $jobResult.BackupOk
+                $completedBackup.CopyOk = $jobResult.CopyOk
+                $completedBackup.LatestBackupFile = $jobResult.LatestBackupFile
+                $completedBackup.Duration = $completedBackup.Job.PSEndTime + $completedBackup.Job.PSBeginTime
 
                 foreach ($e in $jobErrors) {
-                    $finishedBackupTask.JobErrors += $e.ToString()
+                    $completedBackup.JobErrors += $e.ToString()
                     $error.Remove($e)
                 }
+                if ($jobResult.Error) {
+                    $completedBackup.JobErrors += $jobResult.Error
+                }
                 #endregion
+                
+                $completedBackup.Job = $null
                     
-                if ($jobResult.BackupOk) {
+                if ($jobResult.CopyOk) {
                     #region Restore database
                     $invokeParams = @{
                         Name         = 'Restore'
                         ScriptBlock  = $restoreScriptBlock
-                        ArgumentList = $finishedBackupTask.Restore, $file.Restore.Query
+                        ArgumentList = $completedBackup.Restore, $file.Restore.Query
                     }
                 
                     $M = "Restore database on '{0}'" -f 
                     $invokeParams.ArgumentList[0]
                     Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
         
-                    $finishedBackupTask.Job = Start-Job @invokeParams
+                    $completedBackup.Job = Start-Job @invokeParams
                     #endregion
                     
                     #region Wait for max running jobs
@@ -384,9 +342,6 @@ Process {
                     }
                     Wait-MaxRunningJobsHC @waitParams
                     #endregion
-                }
-                else {
-                    $finishedBackupTask.Job = $null
                 }
             }
         }
