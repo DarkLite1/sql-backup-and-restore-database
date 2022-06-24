@@ -31,7 +31,7 @@ Describe 'when tests pass' {
         }
     }
     It 'a result object is returned' {
-        $actual.LatestBackupFile | Should -Be $testBackupFile
+        $actual.BackupFile | Should -Be $testBackupFile
         $actual.BackupOk | Should -BeTrue
         $actual.Error | Should -BeNullOrEmpty
     }
@@ -46,7 +46,7 @@ Describe 'create an error when' {
         }   
         $actual = & $testScript @testParams
 
-        $actual.LatestBackupFile | Should -BeNullOrEmpty
+        $actual.BackupFile | Should -BeNullOrEmpty
         $actual.BackupOk | Should -BeFalse
         $actual.Error | Should -BeLike "Failed creating backup folder 'x:\a\b\c\backup folder'*"
     }
@@ -62,7 +62,7 @@ Describe 'create an error when' {
         }   
         $actual = & $testScript @testParams
 
-        $actual.LatestBackupFile | Should -BeNullOrEmpty
+        $actual.BackupFile | Should -BeNullOrEmpty
         $actual.BackupOk | Should -BeFalse
         $actual.CopyOk | Should -BeFalse
         $actual.Error | Should -BeLike "Backup failed on 'pc1': oops*"
@@ -77,7 +77,7 @@ Describe 'create an error when' {
         }   
         $actual = & $testScript @testParams
 
-        $actual.LatestBackupFile | Should -BeNullOrEmpty
+        $actual.BackupFile | Should -BeNullOrEmpty
         $actual.BackupOk | Should -BeTrue
         $actual.Error | Should -BeLike "No backup file found in folder 'TestDrive:\a\b\c\backup folder' that is more recent than the script start time*"
     }

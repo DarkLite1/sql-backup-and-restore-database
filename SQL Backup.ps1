@@ -10,7 +10,7 @@ Param (
 try {
     $result = [PSCustomObject]@{
         BackupOk         = $false
-        LatestBackupFile = $null
+        BackupFile = $null
         Error            = $null
     }
     $startTime = Get-Date
@@ -66,16 +66,16 @@ try {
         Filter      = '*.bak'
         ErrorAction = 'Stop'
     }
-    $result.latestBackupFile = Get-ChildItem @params | 
+    $result.BackupFile = Get-ChildItem @params | 
     Where-Object { $_.CreationTime -ge $startTime } |
     Sort-Object CreationTime | 
     Select-Object -Last 1 -ExpandProperty FullName
 
-    if (-not $result.latestBackupFile) {
+    if (-not $result.BackupFile) {
         throw "No backup file found in folder '$BackupFolder' that is more recent than the script start time '$startTime'"
     }
 
-    Write-Verbose "$ComputerName Latest backup file '$($result.latestBackupFile)'"
+    Write-Verbose "$ComputerName Latest backup file '$($result.BackupFile)'"
     #endregion           
 }
 catch {
