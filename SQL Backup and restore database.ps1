@@ -71,7 +71,10 @@ Param (
     [String]$ScriptName,
     [Parameter(Mandatory)]
     [String]$ImportFile,
-    [String]$BackupScriptFile = "$PSScriptRoot\SQL Backup.ps1",
+    [HashTable]$ScriptFile = @{
+        Backup  = "$PSScriptRoot\SQL Backup.ps1"
+        Restore = "$PSScriptRoot\SQL Restore.ps1"
+    },
     [String]$LogFolder = "$env:POWERSHELL_LOG_FOLDER\Application specific\SQL\SQL Backup and restore database\$ScriptName",
     [String]$ScriptAdmin = $env:POWERSHELL_SCRIPT_ADMIN
 )
@@ -114,8 +117,14 @@ Begin {
         #endregion
 
         #region Test backup script file
-        if (-not (Test-Path -Path $BackupScriptFile -PathType Leaf)) {
-            throw "Backup script '$BackupScriptFile' not found"
+        if (-not (Test-Path -Path $ScriptFile.Backup -PathType Leaf)) {
+            throw "Backup script '$($ScriptFile.Backup)' not found"
+        }
+        #endregion
+
+        #region Test restore script file
+        if (-not (Test-Path -Path $ScriptFile.Restore -PathType Leaf)) {
+            throw "Restore script '$($ScriptFile.Restore)' not found"
         }
         #endregion
 
@@ -260,12 +269,12 @@ Process {
         foreach (
             $task in 
             $Tasks | Where-Object { -not $_.JobErrors } | 
-            Sort-Object -Property {$_.Backup} -Unique
+            Sort-Object -Property { $_.Backup } -Unique
         ) {
             #region Start backup
             $invokeParams = @{
                 Name         = 'Backup'
-                FilePath     = $BackupScriptFile
+                FilePath     = $ScriptFile.Backup
                 ArgumentList = $task.Backup, $file.Backup.Query, 
                 $task.UncPath.Backup
             }

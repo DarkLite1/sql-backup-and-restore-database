@@ -71,15 +71,35 @@ Describe 'send an e-mail to the admin when' {
             ($Subject -eq 'FAILURE')
         }    
     }
-    It 'the backup script cannot be found' {
+    It 'the restore script cannot be found' {
         $testNewParams = $testParams.clone()
-        $testNewParams.BackupScriptFile = 'x:\script.ps1'
+        $testNewParams.ScriptFile =
+        @{
+            Backup  = (New-Item 'TestDrive:\a.ps1' -ItemType File).FullName
+            Restore = 'x:\scriptRestore.ps1'
+        }
 
         .$testScript @testNewParams
 
         Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
             (&$MailAdminParams) -and 
-            ($Message -like "*Backup script 'x:\script.ps1' not found*")
+            ($Message -like "*Restore script 'x:\scriptRestore.ps1' not found*")
+        }
+    }
+    It 'the backup script cannot be found' {
+        $testNewParams = $testParams.clone()
+        $testNewParams.ScriptFile =
+        @{
+            Backup  = 'x:\scriptBackup.ps1'
+            Restore = (New-Item 'TestDrive:\b.ps1' -ItemType File).FullName
+        }
+
+
+        .$testScript @testNewParams
+
+        Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
+            (&$MailAdminParams) -and 
+            ($Message -like "*Backup script 'x:\scriptBackup.ps1' not found*")
         }
     }
     It 'the log folder cannot be created' {
@@ -631,7 +651,7 @@ Describe 'when tests pass' {
 
         . $testScript @testParams
     }
-    it 'Start-Job is called with the backup script file' {
+    It 'Start-Job is called with the backup script file' {
 
     }
     Context 'in SQL' {
@@ -715,7 +735,7 @@ Describe 'when tests pass' {
             }
         }
     }
-} -Tag test 
+} #-Tag test 
 Describe 'backup only on unique backup computers' {
     BeforeAll {
         Mock Start-Job {
