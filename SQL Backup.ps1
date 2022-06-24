@@ -4,15 +4,12 @@ Param (
     [Parameter(Mandatory)]
     [String]$Query,
     [Parameter(Mandatory)]
-    [String]$BackupFolder,
-    [Parameter(Mandatory)]
-    [String]$RestoreFile
+    [String]$BackupFolder
 )
 
 try {
     $result = [PSCustomObject]@{
         BackupOk         = $false
-        CopyOk           = $false
         LatestBackupFile = $null
         Error            = $null
     }
@@ -79,46 +76,7 @@ try {
     }
 
     Write-Verbose "$ComputerName Latest backup file '$($result.latestBackupFile)'"
-    #endregion
-
-    #region Create restore folder
-    try {
-        $restoreFolder = Split-Path $RestoreFile
-        if (-not (Test-Path $restoreFolder -PathType Container)) {
-            Write-Verbose "Create restore folder '$restoreFolder'"
-            $params = @{
-                Path        = $restoreFolder
-                ItemType    = 'Directory'
-                ErrorAction = 'Stop'
-            }
-            $null = New-Item @params
-        }
-    }
-    catch {
-        $M = "Failed creating restore folder '$restoreFolder': $_"
-        $error.RemoveAt(0)
-        throw $M
-    }
-    #endregion
-
-    #region Copy backup file to restore folder
-    try {
-        $copyParams = @{
-            LiteralPath = $result.latestBackupFile
-            Destination = $RestoreFile
-            Force       = $true
-            ErrorAction = 'Stop'
-        }
-        $null = Copy-Item @copyParams
-
-        $result.CopyOk = $true
-    }
-    catch {
-        $M = "Failed copying file '$($result.latestBackupFile)' to '$RestoreFile': $_"
-        $error.RemoveAt(0)
-        throw $M
-    }
-    #endregion            
+    #endregion           
 }
 catch {
     $result.Error = $_
