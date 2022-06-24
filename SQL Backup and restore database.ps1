@@ -92,6 +92,80 @@ Begin {
         )
     }
 
+    $getBackupResultAndStartRestore = {
+        #region Get backup job results and errors
+        $M = "'{0}' Get job results for backup" -f 
+        $completedBackup.Backup
+        Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+           
+        $jobErrors = @()
+        $receiveParams = @{
+            ErrorVariable = 'jobErrors'
+            ErrorAction   = 'SilentlyContinue'
+        }
+        $completedBackup.JobResult.Backup = $completedBackup.Job | 
+        Receive-Job @receiveParams
+   
+        $completedBackup.JobResult.Duration = if (
+            $completedBackup.JobResult.Duration
+        ) {
+            $completedBackup.JobResult.Duration +
+            ($completedBackup.Job.PSEndTime - $completedBackup.Job.PSBeginTime)
+        }
+        else {
+            $completedBackup.Job.PSEndTime - $completedBackup.Job.PSBeginTime
+        }
+
+        foreach ($e in $jobErrors) {
+            $M = "'{0}' Backup job error '{1}'" -f 
+            $completedBackup.Backup, $e.ToString()
+            Write-Warning $M; Write-EventLog @EventWarnParams -Message $M
+               
+            $completedBackup.JobErrors += $e.ToString()
+            $error.Remove($e)
+        }
+        if ($completedBackup.JobResult.Backup.Error) {
+            $M = "'{0}' Backup error '{1}'" -f 
+            $completedBackup.Backup, $completedBackup.JobResult.Backup.Error
+            Write-Warning $M; Write-EventLog @EventWarnParams -Message $M
+
+            $completedBackup.JobErrors += 
+            $completedBackup.JobResult.Backup.Error
+        }
+        #endregion
+               
+        $completedBackup.Job = $null
+            
+        if ($completedBackup.JobResult.Backup.BackupOk) {
+            $M = "'{0}' Backup successful" -f $completedBackup.Backup
+            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+
+            #region Start restore database
+            $invokeParams = @{
+                Name         = 'Restore'
+                FilePath     = $ScriptFile.Restore
+                ArgumentList = $completedBackup.Restore, 
+                $file.Restore.Query, 
+                $completedBackup.JobResult.Backup.BackupFile, 
+                $completedBackup.UncPath.Restore
+            }
+        
+            $M = "'{0}' Start database restore" -f $invokeParams.ArgumentList[0]
+            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+
+            $completedBackup.Job = Start-Job @invokeParams
+            #endregion
+            
+            #region Wait for max running jobs
+            $waitParams = @{
+                Name       = $Tasks.Job | Where-Object { $_ }
+                MaxThreads = $file.MaxConcurrentJobs.BackupAndRestore
+            }
+            Wait-MaxRunningJobsHC @waitParams
+            #endregion
+        }
+    }
+
     try {
         Import-EventLogParamsHC -Source $ScriptName
         Write-EventLog @EventStartParams
@@ -215,13 +289,17 @@ Begin {
 
             $addParams = @{
                 NotePropertyMembers = @{
-                    BackupOk    = $false
-                    CopyOk      = $false
-                    Duration    = $null
-                    RestoreOk   = $false
-                    BackupFile  = $null
+                    # BackupOk    = $false
+                    # CopyOk      = $false
+                    # RestoreOk   = $false
+                    # BackupFile  = $null
                     RestoreFile = $null
                     Job         = $null
+                    JobResult   = @{
+                        Backup   = $null
+                        Restore  = $null
+                        Duration = $null
+                    }
                     JobErrors   = @()
                     UncPath     = @{
                         Backup  = ConvertTo-UncPathHC @sourceParams
@@ -282,7 +360,7 @@ Process {
                 $task.UncPath.Backup
             }
 
-            $M = "Backup database on '{0}'" -f $invokeParams.ArgumentList[0]
+            $M = "'{0}' Start database backup" -f $invokeParams.ArgumentList[0]
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
             $task.Job = Start-Job @invokeParams
@@ -301,61 +379,46 @@ Process {
                 $completedBackup in 
                 $Tasks | Where-Object {
                     ($_.Job.Name -eq 'Backup') -and
-                    (
-                        ($_.Job.State -eq 'Completed') -or 
-                        ($_.Job.State -eq 'Failed')
-                    )
+                    ($_.Job.State -match 'Completed|Failed')
                 }
             ) {
-                #region Get job results and errors
-                $jobErrors = @()
-                $receiveParams = @{
-                    ErrorVariable = 'jobErrors'
-                    ErrorAction   = 'SilentlyContinue'
-                }
-                $jobResult = $completedBackup.Job | 
-                Receive-Job @receiveParams
-    
-                $completedBackup.BackupOk = $jobResult.BackupOk
-                $completedBackup.CopyOk = $jobResult.CopyOk
-                $completedBackup.LatestBackupFile = $jobResult.LatestBackupFile
-                $completedBackup.Duration = $completedBackup.Job.PSEndTime + $completedBackup.Job.PSBeginTime
-
-                foreach ($e in $jobErrors) {
-                    $completedBackup.JobErrors += $e.ToString()
-                    $error.Remove($e)
-                }
-                if ($jobResult.Error) {
-                    $completedBackup.JobErrors += $jobResult.Error
-                }
-                #endregion
-                
-                $completedBackup.Job = $null
-                    
-                if ($jobResult.CopyOk) {
-                    #region Restore database
-                    $invokeParams = @{
-                        Name         = 'Restore'
-                        ScriptBlock  = $restoreScriptBlock
-                        ArgumentList = $completedBackup.Restore, $file.Restore.Query
-                    }
-                
-                    $M = "Restore database on '{0}'" -f 
-                    $invokeParams.ArgumentList[0]
-                    Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-        
-                    $completedBackup.Job = Start-Job @invokeParams
-                    #endregion
-                    
-                    #region Wait for max running jobs
-                    $waitParams = @{
-                        Name       = $Tasks.Job | Where-Object { $_ }
-                        MaxThreads = $file.MaxConcurrentJobs.BackupAndRestore
-                    }
-                    Wait-MaxRunningJobsHC @waitParams
-                    #endregion
-                }
+                & $getBackupResultAndStartRestore
             }
+        }
+        #endregion
+
+        #region Start restore after all backups are done
+        while (
+            $backupJobs = $Tasks | Where-Object {
+                (-not $_.JobErrors) -and
+                ($_.Job.Name -eq 'Backup') 
+            }   
+        ) {
+            $backupJobs.Job | Wait-Job -Any
+            
+            foreach (
+                $completedBackup in 
+                $backupJobs | Where-Object {
+                    ($_.Job.State -match 'Completed|Failed')
+                }
+            ) {
+                & $getBackupResultAndStartRestore
+            }
+        }
+        #endregion
+
+        #region Start remaining restore tasks
+        foreach (
+            $task in 
+            $Tasks | Where-Object {
+                 (-not $_.JobErrors) -and
+                  ($_.Job.Name -ne 'Restore') 
+            } 
+        ) {
+            $backupComputer = $Tasks | Where-Object {
+                $_.Backup -eq $task.Backup
+            } | Select-Object -First 1
+           
         }
         #endregion
 
@@ -369,51 +432,8 @@ Process {
         }
         #endregion
 
-        #region Get job errors
-        foreach (
-            $task 
-            in $Tasks | Where-Object { $_.Job }
-        ) {
-            $M = "Get job errors for backup '{0}' restore '{1}'" -f 
-            $task.backup, $task.restore
-            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-
-            $jobErrors = @()
-            $receiveParams = @{
-                ErrorVariable = 'jobErrors'
-                ErrorAction   = 'SilentlyContinue'
-            }
-            $null = $task.Job | Receive-Job @receiveParams
-
-            foreach (
-                $t 
-                in 
-                , $task + ($Tasks | Where-Object { 
-                    (-not $_.Job) -and ($task.Backup -eq $_.Backup) 
-                    })
-            ) {
-                foreach ($e in $jobErrors) {
-                    $t.JobErrors += $e.ToString()
-                    $Error.Remove($e)
-
-                    $M = "Database backup error on '{0}': {1}" -f 
-                    $t.Backup, $e.ToString()
-                    Write-Warning $M; Write-EventLog @EventErrorParams -Message $M
-                }
-
-                if (-not $jobErrors) {
-                    $t.BackupOk = $true
-
-                    $M = 'No job errors'
-                    Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-                }
-            }
-        }
-        #endregion
-        
-        
-        #endregion
-
+        # Get restore job results
+     
         #region Export to Excel file
         $exportToExcel = $Tasks | Select-Object -Property 'Backup', 
         'Restore', 'BackupOk', 'RestoreOk', 'BackupFile', 'RestoreFile',

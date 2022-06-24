@@ -640,18 +640,28 @@ Describe 'send an e-mail to the admin when' {
             }
         }
     }
-} -tag test
+}
 Describe 'when tests pass' {
     BeforeAll {
         Mock Start-Job {
-            & $realCmdLet.StartJob -Scriptblock { 
-                New-Item "$using:TestDrive\backup\a\b\c\d\xyz.bak" -ItemType File
-            }
+            & $realCmdLet.StartJob -Scriptblock {
+                [PSCustomObject]@{
+                    BackupOk   = $true
+                    BackupFile = $using:testBackupFile
+                    Error      = $null
+                }
+            } -Name 'Backup'
         } -ParameterFilter {
             ($Name -eq 'Backup')
         }
         Mock Start-Job {
-            & $realCmdLet.StartJob -Scriptblock { 1 }
+            & $realCmdLet.StartJob -Scriptblock { 
+                [PSCustomObject]@{
+                    CopyOk    = $true
+                    RestoreOk = $true
+                    Error     = $null
+                }
+            } -Name 'Restore'
         } -ParameterFilter {
             ($Name -eq 'Restore')
         }
@@ -678,14 +688,29 @@ Describe 'when tests pass' {
             }
         } | ConvertTo-Json | Out-File @testOutParams
 
-        $testBackupFolder | Should -Not -Exist
-        $testRestoreFile | Should -Not -Exist
-
         . $testScript @testParams
     }
-    It 'Start-Job is called with the backup script file' {
-        should -Invoke Start-Job -Times 1 -Exactly
-    }
+    Context 'Start-Job is called' {
+        It 'to create a database backup' {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+                ($Name -eq 'Backup') -and
+                ($FilePath -like '*SQL Backup.ps1') -and
+                ($ArgumentList[0] -eq 'PC1') -and
+                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            }
+        }
+        It 'to restore a database backup' {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+                ($Name -eq 'Restore') -and
+                ($FilePath -like '*SQL Restore.ps1') -and
+                ($ArgumentList[0] -eq 'PC2') -and
+                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+                ($ArgumentList[2] -eq $testBackupFile)
+            }
+        }
+    } -Tag test 
+    
     Context 'in SQL' {
         It 'restore the database on the restore computer' {
             Should -Invoke  Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
