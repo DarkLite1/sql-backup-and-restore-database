@@ -137,7 +137,7 @@ Describe 'send an e-mail to the admin when' {
                     }
                     ComputerName      = @{
                         Backup  = 'PC1'
-                        Restore = 'PC1'
+                        Restore = 'PC2'
                     }
                     Backup            = @{
                         Query  = "EXECUTE dbo.DatabaseBackup"
@@ -169,7 +169,7 @@ Describe 'send an e-mail to the admin when' {
                         # ComputerName      = @(
                         #     @{
                         #         Backup      = 'PC1'
-                        #         Restore = 'PC1'
+                        #         Restore = 'PC2'
                         #     }
                         # )
                         Backup            = @{
@@ -366,7 +366,7 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @{
                             Backup  = 'PC1'
-                            Restore = 'PC1'
+                            Restore = 'PC2'
                         }
                         # Backup       = @{
                         #     Query  = "EXECUTE dbo.DatabaseBackup"
@@ -396,7 +396,7 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @{
                             Backup  = 'PC1'
-                            Restore = 'PC1'
+                            Restore = 'PC2'
                         }
                         Backup            = @{
                             # Query  = "EXECUTE dbo.DatabaseBackup"
@@ -426,7 +426,7 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @{
                             Backup  = 'PC1'
-                            Restore = 'PC1'
+                            Restore = 'PC2'
                         }
                         Backup            = @{
                             Query = "EXECUTE dbo.DatabaseBackup"
@@ -458,7 +458,7 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @{
                             Backup  = 'PC1'
-                            Restore = 'PC1'
+                            Restore = 'PC2'
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -488,7 +488,7 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @{
                             Backup  = 'PC1'
-                            Restore = 'PC1'
+                            Restore = 'PC2'
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -518,7 +518,7 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @{
                             Backup  = 'PC1'
-                            Restore = 'PC1'
+                            Restore = 'PC2'
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -551,7 +551,7 @@ Describe 'send an e-mail to the admin when' {
                         ComputerName = @(
                             @{
                                 Backup  = 'PC1'
-                                Restore = 'PC1'
+                                Restore = 'PC2'
                             }
                         )
                         Backup       = @{
@@ -583,7 +583,7 @@ Describe 'send an e-mail to the admin when' {
                         ComputerName      = @(
                             @{
                                 Backup  = 'PC1'
-                                Restore = 'PC1'
+                                Restore = 'PC2'
                             }
                         )
                         Backup            = @{
@@ -615,7 +615,7 @@ Describe 'send an e-mail to the admin when' {
                         ComputerName      = @(
                             @{
                                 Backup  = 'PC1'
-                                Restore = 'PC1'
+                                Restore = 'PC2'
                             }
                         )
                         Backup            = @{
@@ -665,7 +665,7 @@ Describe 'when tests pass' {
             ComputerName      = @(
                 @{
                     Backup  = 'PC1'
-                    Restore = 'PC1'
+                    Restore = 'PC2'
                 }
             )
             Backup            = @{
@@ -689,7 +689,7 @@ Describe 'when tests pass' {
     Context 'in SQL' {
         It 'restore the database on the restore computer' {
             Should -Invoke  Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-            ($ArgumentList[0] -eq 'PC1') -and
+            ($ArgumentList[0] -eq 'PC2') -and
             ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
             ($Name -eq 'Restore')
             }
@@ -700,7 +700,7 @@ Describe 'when tests pass' {
             $testExportedExcelRows = @(
                 @{
                     Backup      = 'PC1'
-                    Restore     = 'PC1'
+                    Restore     = 'PC2'
                     BackupOk    = $true
                     RestoreOk   = $true
                     Error       = ''
@@ -794,11 +794,11 @@ Describe 'backup only on unique backup computers' {
             ComputerName      = @(
                 @{
                     Backup  = 'PC1'
-                    Restore = 'PC1'
+                    Restore = 'PC2'
                 },
                 @{
                     Backup  = 'PC1'
-                    Restore = 'P2'
+                    Restore = 'P3'
                 }
             )
             Backup            = @{
@@ -838,7 +838,7 @@ Describe 'backup only on unique backup computers' {
             $testExportedExcelRows = @(
                 @{
                     Backup      = 'PC1'
-                    Restore     = 'PC1'
+                    Restore     = 'PC2'
                     BackupOk    = $true
                     RestoreOk   = $true
                     Error       = ''
@@ -847,10 +847,10 @@ Describe 'backup only on unique backup computers' {
                 },
                 @{
                     Backup      = 'PC1'
-                    Restore     = 'P2'
+                    Restore     = 'P3'
                     BackupOk    = $true
                     RestoreOk   = $false
-                    Error       = "Computer 'P2' not online"
+                    Error       = "Computer 'PC3' not online"
                     BackupFile  = $null
                     RestoreFile = $null
                 }
@@ -1165,7 +1165,7 @@ Describe 'when the backup fails' {
             ComputerName      = @(
                 @{
                     Backup  = 'PC1'
-                    Restore = 'PC1'
+                    Restore = 'PC2'
                 }
             )
             Backup            = @{
@@ -1205,7 +1205,7 @@ Describe 'when the backup fails' {
             $testExportedExcelRows = @(
                 @{
                     Backup      = 'PC1'
-                    Restore     = 'PC1'
+                    Restore     = 'PC2'
                     BackupOk    = $false
                     RestoreOk   = $false
                     Error       = 'oops'
@@ -1299,7 +1299,7 @@ Describe 'when the restore fails' {
             ComputerName      = @(
                 @{
                     Backup  = 'PC1'
-                    Restore = 'PC1'
+                    Restore = 'PC2'
                 }
             )
             Backup            = @{
@@ -1344,7 +1344,7 @@ Describe 'when the restore fails' {
             $testExportedExcelRows = @(
                 @{
                     Backup      = 'PC1'
-                    Restore     = 'PC1'
+                    Restore     = 'PC2'
                     BackupOk    = $true
                     RestoreOk   = $false
                     Error       = 'oops'
