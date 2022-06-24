@@ -289,10 +289,6 @@ Begin {
 
             $addParams = @{
                 NotePropertyMembers = @{
-                    # BackupOk    = $false
-                    # CopyOk      = $false
-                    # RestoreOk   = $false
-                    # BackupFile  = $null
                     RestoreFile = $null
                     Job         = $null
                     JobResult   = @{
