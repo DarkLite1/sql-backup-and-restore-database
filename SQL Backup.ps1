@@ -68,8 +68,8 @@ try {
     }
     $result.BackupFile = Get-ChildItem @params | 
     Where-Object { $_.CreationTime -ge $startTime } |
-    Sort-Object CreationTime | 
-    Select-Object -Last 1 -ExpandProperty FullName
+    Sort-Object 'CreationTime' | 
+    Select-Object -Last 1 -ExpandProperty 'FullName'
 
     if (-not $result.BackupFile) {
         throw "No backup file found in folder '$BackupFolder' that is more recent than the script start time '$startTime'"
