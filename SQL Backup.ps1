@@ -9,9 +9,9 @@ Param (
 
 try {
     $result = [PSCustomObject]@{
-        BackupOk         = $false
+        BackupOk   = $false
         BackupFile = $null
-        Error            = $null
+        Error      = $null
     }
     $startTime = Get-Date
 
