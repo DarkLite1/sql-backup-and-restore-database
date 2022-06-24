@@ -71,6 +71,7 @@ Param (
     [String]$ScriptName,
     [Parameter(Mandatory)]
     [String]$ImportFile,
+    [String]$BackupScriptFile = "$PSScriptRoot\SQL Backup.ps1",
     [String]$LogFolder = "$env:POWERSHELL_LOG_FOLDER\Application specific\SQL\SQL Backup and restore database\$ScriptName",
     [String]$ScriptAdmin = $env:POWERSHELL_SCRIPT_ADMIN
 )
@@ -86,34 +87,6 @@ Begin {
         $Path -Replace '^.{2}', (
             '\\{0}\{1}$' -f $ComputerName, $Path[0]
         )
-    }
-
-    $backupRestoreScriptBlock = {
-        Param (
-            [Parameter(Mandatory)]
-            [String]$ComputerName,
-            [Parameter(Mandatory)]
-            [String]$Query,
-            [Parameter(Mandatory)]
-            [ValidateSet('Backup', 'Restore')]
-            [String]$Type
-        )
-
-        try {
-            $params = @{
-                ServerInstance    = $ComputerName
-                Query             = $Query
-                QueryTimeout      = '1000'
-                ConnectionTimeout = '20'
-                ErrorAction       = 'Stop'
-            }
-            $null = Invoke-Sqlcmd @params
-        }
-        catch {
-            $M = "Failed '$Type' on '$ComputerName': $_"
-            $global:error.RemoveAt(0)
-            throw $M
-        }
     }
 
     $copyItemScriptBlock = {
@@ -139,10 +112,37 @@ Begin {
         }
     }
 
+    $restoreScriptBlock = {
+        Param (
+            [Parameter(Mandatory)]
+            [String]$ComputerName,
+            [Parameter(Mandatory)]
+            [String]$Query
+        )
+
+        #region Start database restore
+        try {
+            $params = @{
+                ServerInstance    = $ComputerName
+                Query             = $Query
+                QueryTimeout      = '1000'
+                ConnectionTimeout = '20'
+                ErrorAction       = 'Stop'
+            }
+            $null = Invoke-Sqlcmd @params
+        }
+        catch {
+            $M = "Restore failed on '$ComputerName': $_"
+            $global:error.RemoveAt(0)
+            throw $M
+        }
+        #endregion
+    }
+
     try {
         Import-EventLogParamsHC -Source $ScriptName
         Write-EventLog @EventStartParams
-        $scriptStartTime = Get-ScriptRuntimeHC -Start
+        Get-ScriptRuntimeHC -Start
 
         $error.Clear()
 
@@ -160,6 +160,12 @@ Begin {
         }
         Catch {
             throw "Failed creating the log folder '$LogFolder': $_"
+        }
+        #endregion
+
+        #region Test backup script file
+        if (-not (Test-Path -Path $BackupScriptFile -PathType Leaf)) {
+            throw "Backup script '$BackupScriptFile' not found"
         }
         #endregion
 
@@ -195,6 +201,12 @@ Begin {
             $_.Count -ge 2
         } | ForEach-Object {
             throw "Input file '$ImportFile': Duplicate combination found in 'ComputerName': $($_.Name)"
+        }
+
+        $Tasks | Group-Object -Property 'Restore' | Where-Object {
+            $_.Count -ge 2
+        } | ForEach-Object {
+            throw "Input file '$ImportFile': Computer name '$($_.Name)' was found multiple times in 'Restore': a backup cannot be restored multiple times on the same computer"
         }
 
         if (-not ($file.Backup)) {
@@ -242,6 +254,8 @@ Begin {
             $addParams = @{
                 NotePropertyMembers = @{
                     BackupOk    = $false
+                    CopyOk      = $false
+                    Duration    = $null
                     RestoreOk   = $false
                     BackupFile  = $null
                     RestoreFile = $null
@@ -270,76 +284,111 @@ Begin {
 Process {
     try {
         #region Test computers online
+        $computerOnline = @{}
+
+        @($Tasks.Backup) + $Tasks.Restore | Sort-Object -Unique | 
+        ForEach-Object {
+            $params = @{
+                ComputerName = $_
+                Count        = 1
+                Quiet        = $true
+            }
+            $computerOnline[$_] = Test-Connection @params
+        }
+
         foreach ($task in $Tasks) {
-            , $task.Backup + $task.Restore | ForEach-Object {
-                if (-not (Test-Connection -ComputerName $_ -Count 1 -Quiet)) {
-                    $task.JobErrors += "Computer '$_' not online"
-                }
+            if (-not $computerOnline[$task.Backup]) {
+                $task.JobErrors += "Backup computer '$($task.Backup)' not online"
+            }
+            if (-not $computerOnline[$task.Restore]) {
+                $task.JobErrors += "Restore computer '$($task.Restore)' not online"
             }
         }
         #endregion
 
-        #region Create backup folders
-        Foreach (
-            $task in 
-            $Tasks | Where-Object { -not $_.JobErrors }
-        ) {
-            $path = $task.UncPath.Backup
-            try {
-                if (-not (Test-Path $path -PathType Container)) {
-                    Write-Verbose "Create backup folder '$path'"
-                    $null = New-Item -Path $path -ItemType 'Directory'
-                }
-            }
-            catch {
-                $task.JobErrors += "Failed creating backup folder '$path': $_"
-                $error.RemoveAt(0)
-            }
-        }
-        #endregion
-
-        #region Create restore folders
-        Foreach (
-            $task in 
-            $Tasks | Where-Object { -not $_.JobErrors }
-        ) {
-            $path = $task.UncPath.Restore | Split-Path
-            try {
-                if (-not (Test-Path $path -PathType Container)) {
-                    Write-Verbose "Create restore folder '$path'"
-                    $null = New-Item -Path $path -ItemType 'Directory'
-                }
-            }
-            catch {
-                $task.JobErrors += "Failed creating restore folder '$path': $_"
-                $error.RemoveAt(0)
-            }
-        }
-        #endregion
-
-        #region Create database backups on unique backup computers
-        #region Start backup
+        #region Create backups on unique backup computers
         foreach (
             $task in 
             $Tasks | Where-Object { -not $_.JobErrors } | 
             Sort-Object -Property 'Backup' -Unique
         ) {
+            #region Start backup
             $invokeParams = @{
-                ScriptBlock  = $backupRestoreScriptBlock
-                ArgumentList = $task.Backup, $file.Backup.Query, 'Backup'
+                Name         = 'Backup'
+                FilePath     = $BackupScriptFile
+                ArgumentList = $task.Backup, $file.Backup.Query, 
+                $task.UncPath.Backup, $task.UncPath.Restore
             }
 
-            $M = "Start database backup on '{0}'" -f 
-            $invokeParams.ArgumentList[0]
+            $M = "Backup database on '{0}'" -f $invokeParams.ArgumentList[0]
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
             $task.Job = Start-Job @invokeParams
+            #endregion
             
+            #region Wait for max running jobs
             $waitParams = @{
                 Name       = $Tasks.Job | Where-Object { $_ }
                 MaxThreads = $file.MaxConcurrentJobs.BackupAndRestore
             }
             Wait-MaxRunningJobsHC @waitParams
+            #endregion
+
+            #region Start restore for completed jobs
+            foreach (
+                $finishedBackupTask in 
+                $Tasks | Where-Object {
+                    ($_.Job.Name -eq 'Backup') -and
+                    ($_.Job.State -eq 'Completed')
+                }
+            ) {
+                #region Get job results and errors
+                $jobErrors = @()
+                $receiveParams = @{
+                    ErrorVariable = 'jobErrors'
+                    ErrorAction   = 'SilentlyContinue'
+                }
+                $jobResult = $finishedBackupTask.Job | 
+                Receive-Job @receiveParams
+    
+                $finishedBackupTask.LatestBackupFile = $jobResult.LatestBackupFile
+                $finishedBackupTask.BackupOk = $jobResult.BackupOk
+                $finishedBackupTask.CopyOk = $jobResult.CopyOk
+                $finishedBackupTask.Duration = $finishedBackupTask.Job.PSEndTime + $finishedBackupTask.Job.PSBeginTime
+
+                foreach ($e in $jobErrors) {
+                    $finishedBackupTask.JobErrors += $e.ToString()
+                    $error.Remove($e)
+                }
+                #endregion
+                    
+                if ($jobResult.BackupOk) {
+                    #region Restore database
+                    $invokeParams = @{
+                        Name         = 'Restore'
+                        ScriptBlock  = $restoreScriptBlock
+                        ArgumentList = $finishedBackupTask.Restore, $file.Restore.Query
+                    }
+                
+                    $M = "Restore database on '{0}'" -f 
+                    $invokeParams.ArgumentList[0]
+                    Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+        
+                    $finishedBackupTask.Job = Start-Job @invokeParams
+                    #endregion
+                    
+                    #region Wait for max running jobs
+                    $waitParams = @{
+                        Name       = $Tasks.Job | Where-Object { $_ }
+                        MaxThreads = $file.MaxConcurrentJobs.BackupAndRestore
+                    }
+                    Wait-MaxRunningJobsHC @waitParams
+                    #endregion
+                }
+                else {
+                    $finishedBackupTask.Job = $null
+                }
+            }
         }
         #endregion
 
@@ -395,188 +444,7 @@ Process {
         }
         #endregion
         
-        #region Reset job property
-        $Tasks | ForEach-Object { $_.Job = $null }
-        #endregion
         
-        #endregion
-
-        #region Get latest backup file on unique backup computers
-        Foreach (
-            $task in 
-            $Tasks | Where-Object { (-not $_.JobErrors) -and ($_.BackupOk) }
-        ) {
-            try {
-                $M = "Get latest backup file on '{0}'" -f $task.UncPath.Backup
-                Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-                
-                $task.BackupFile = $Tasks | Where-Object { 
-                    ($_.BackupFile) -and ($_.Backup -eq $task.Backup)
-                } | Select-Object -First 1 -ExpandProperty 'BackupFile'
-
-                if (-not $task.BackupFile) {
-                    $params = @{
-                        Path    = $task.UncPath.Backup
-                        Recurse = $true
-                        File    = $true
-                        Filter  = '*.bak'
-                    }
-                
-                    $task.BackupFile = Get-ChildItem @params | 
-                    Where-Object { $_.CreationTime -ge $scriptStartTime } |
-                    Sort-Object CreationTime | 
-                    Select-Object -Last 1 -ExpandProperty FullName
-                }
-                
-                if (-not $task.BackupFile) {
-                    throw "No recent backup file found that is more recent than the script start time '$scriptStartTime'"
-                }
-                $M = "Latest backup file on '{0}' is '{1}'" -f 
-                $task.Backup, $task.BackupFile
-                Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-            }
-            catch {
-                $task.JobErrors += "Failed retrieving the latest backup file on '$($task.Backup)' in folder '$($task.UncPath.Backup)': $_"
-                $error.RemoveAt(0)
-                $M = $task.JobErrors[0]
-                Write-Warning $M; Write-EventLog @EventWarningParams -Message $M
-            }
-        }
-        #endregion
-
-        #region Copy backup file to restore computers
-        #region Start jobs
-        foreach (
-            $task in 
-            $Tasks | Where-Object { $_.BackupFile }
-        ) {
-            $invokeParams = @{
-                ScriptBlock  = $copyItemScriptBlock
-                ArgumentList = $task.BackupFile, $task.UncPath.Restore
-            }
-        
-            $M = "Copy backup file {0} to '{1}'" -f 
-            $invokeParams.ArgumentList[0], $invokeParams.ArgumentList[1]
-            Write-Verbose $M; Write-EventLog @EventOutParams -Message $M
-        
-            $task.Job = Start-Job @invokeParams
-                    
-            $waitParams = @{
-                Name       = $Tasks.Job | Where-Object { $_ }
-                MaxThreads = $file.MaxConcurrentJobs.CopyBackupFileToRestoreComputer
-            }
-            Wait-MaxRunningJobsHC @waitParams
-        }
-        #endregion
-        
-        #region Wait for jobs to finish
-        if ($runningJobs = $Tasks | Where-Object { $_.Job }) {
-            $M = "Wait for '{0}' copy jobs to finish" -f 
-            ($runningJobs | Measure-Object).Count
-            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-
-            $null = $runningJobs | Wait-Job
-        }
-        #endregion
-        
-        #region Get job errors
-        foreach (
-            $task 
-            in $Tasks | Where-Object { $_.Job }
-        ) {
-            $jobErrors = @()
-            $receiveParams = @{
-                ErrorVariable = 'jobErrors'
-                ErrorAction   = 'SilentlyContinue'
-            }
-
-            $null = $task.Job | Receive-Job @receiveParams
-        
-            foreach ($e in $jobErrors) {
-                $task.JobErrors += $e.ToString()
-                $Error.Remove($e)
-        
-                $M = $e.ToString()
-                Write-Warning $M; Write-EventLog @EventErrorParams -Message $M
-            }
-
-            if (-not $jobErrors) {
-                $task.RestoreFile = $task.UncPath.Restore
-
-                $M = 'No job errors'
-                Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-            }
-          
-            $task.Job = $null
-        }
-        #endregion
-        #endregion
-        
-        #region Restore backups
-        #region Restore backup
-        foreach (
-            $task in 
-            $Tasks | Where-Object { (-not $_.JobErrors) -and ($_.BackupOk) }
-        ) {
-            $invokeParams = @{
-                ScriptBlock  = $backupRestoreScriptBlock
-                ArgumentList = $task.Restore, $file.Restore.Query, 'Restore'
-            }
-        
-            $M = "Start database restore on '{0}'" -f 
-            $invokeParams.ArgumentList[0]
-            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-
-            $task.Job = Start-Job @invokeParams
-                    
-            $waitParams = @{
-                Name       = $Tasks.Job | Where-Object { $_ }
-                MaxThreads = $file.MaxConcurrentJobs.BackupAndRestore
-            }
-            Wait-MaxRunningJobsHC @waitParams
-        }
-        #endregion
-        
-        #region Wait for jobs to finish
-        if ($runningJobs = $Tasks | Where-Object { $_.Job }) {
-            $M = "Wait for '{0}' backup restore jobs to finish" -f 
-            ($runningJobs | Measure-Object).Count
-            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-
-            $null = $runningJobs | Wait-Job
-        }
-        #endregion
-        
-        #region Get job results and job errors
-        foreach (
-            $task 
-            in $Tasks | Where-Object { $_.Job }
-        ) {
-            $jobErrors = @()
-            $receiveParams = @{
-                ErrorVariable = 'jobErrors'
-                ErrorAction   = 'SilentlyContinue'
-            }
-            $null = $task.Job | Receive-Job @receiveParams
-        
-            foreach ($e in $jobErrors) {
-                $task.JobErrors += $e.ToString()
-                $Error.Remove($e)
-        
-                $M = $e.ToString()
-                Write-Warning $M; Write-EventLog @EventErrorParams -Message $M
-            }
-        
-            if (-not $jobErrors) {
-                $task.RestoreOk = $true
-
-                $M = 'No job errors'
-                Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-            }
-
-            $task.Job = $null
-        }
-        #endregion
         #endregion
 
         #region Export to Excel file

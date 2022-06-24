@@ -51,6 +51,10 @@ BeforeAll {
         }
     }
     Mock Send-MailHC
+    Mock Start-Job {
+        & $realCmdLet.StartJob -Scriptblock { 1 }
+    }
+    Mock Test-Connection { $true }
     Mock Write-EventLog
     Mock Invoke-Sqlcmd
 }
@@ -66,6 +70,17 @@ Describe 'send an e-mail to the admin when' {
             ($To -eq $ScriptAdmin) -and ($Priority -eq 'High') -and 
             ($Subject -eq 'FAILURE')
         }    
+    }
+    It 'the backup script cannot be found' {
+        $testNewParams = $testParams.clone()
+        $testNewParams.BackupScriptFile = 'x:\script.ps1'
+
+        .$testScript @testNewParams
+
+        Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
+            (&$MailAdminParams) -and 
+            ($Message -like "*Backup script 'x:\script.ps1' not found*")
+        }
     }
     It 'the log folder cannot be created' {
         $testNewParams = $testParams.clone()
@@ -216,7 +231,7 @@ Describe 'send an e-mail to the admin when' {
                         $EntryType -eq 'Error'
                     }
                 }
-                It 'duplicates are found' {
+                It 'duplicate backup and restore is found' {
                     @{
                         MailTo            = @('bob@contoso.com')
                         MaxConcurrentJobs = @{
@@ -247,6 +262,42 @@ Describe 'send an e-mail to the admin when' {
                 
                     Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
                     (&$MailAdminParams) -and ($Message -like "*$ImportFile*Duplicate combination found in 'ComputerName': Backup: '$env:COMPUTERNAME' Restore '$env:COMPUTERNAME'*")
+                    }
+                    Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
+                        $EntryType -eq 'Error'
+                    }
+                }
+                It 'duplicate restore is found' {
+                    @{
+                        MailTo            = @('bob@contoso.com')
+                        MaxConcurrentJobs = @{
+                            BackupAndRestore                = 6
+                            CopyBackupFileToRestoreComputer = 4
+                        }
+                        ComputerName      = @(
+                            @{
+                                Backup  = 'PC1'
+                                Restore = 'PC2'
+                            },
+                            @{
+                                Backup  = 'PC3'
+                                Restore = 'PC2'
+                            }
+                        )
+                        Backup            = @{
+                            Query  = "EXECUTE dbo.DatabaseBackup"
+                            Folder = $testBackupFolder 
+                        }
+                        Restore           = @{
+                            Query = "RESTORE DATABASE"
+                            File  = $testRestoreFile
+                        }
+                    } | ConvertTo-Json | Out-File @testOutParams
+       
+                    .$testScript @testParams
+                
+                    Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
+                    (&$MailAdminParams) -and ($Message -like "*$ImportFile*Computer name 'PC2' was found multiple times in 'Restore': a backup cannot be restored multiple times on the same computer*")
                     }
                     Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
                         $EntryType -eq 'Error'
@@ -537,7 +588,7 @@ Describe 'send an e-mail to the admin when' {
             }
         }
     }
-} 
+}
 Describe 'when tests pass' {
     BeforeAll {
         Mock Start-Job {
@@ -580,27 +631,8 @@ Describe 'when tests pass' {
 
         . $testScript @testParams
     }
-    Context  'create the folder' {
-        It 'backup on the backup computer' {
-            $testBackupFolder | Should -Exist
-        }
-        It 'restore on the restore computer' {
-            $testRestoreFile | Split-Path | Should -Exist
-        }
-    }
-    Context 'in SQL' {
-        It 'create a database backup' {
-            Should -Invoke  Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-                ($ArgumentList[0] -eq $env:COMPUTERNAME) -and
-                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
-                ($ArgumentList[2] -eq 'Backup')
-            }
-        }
-    }
-    Context 'copy the most recent backup file' {
-        It 'from the backup to the restore computer' {
-            $testRestoreFile | Should -Exist
-        }
+    it 'Start-Job is called with the backup script file' {
+
     }
     Context 'in SQL' {
         It 'restore the database on the restore computer' {
@@ -683,7 +715,7 @@ Describe 'when tests pass' {
             }
         }
     }
-}
+} -Tag test 
 Describe 'backup only on unique backup computers' {
     BeforeAll {
         Mock Start-Job {
@@ -881,7 +913,7 @@ Describe 'when the backup computer is offline' {
                     Restore     = $env:COMPUTERNAME
                     BackupOk    = $false
                     RestoreOk   = $false
-                    Error       = "Computer 'pcDown' not online"
+                    Error       = "Backup computer 'pcDown' not online"
                     BackupFile  = $null
                     RestoreFile = $null
                 }
