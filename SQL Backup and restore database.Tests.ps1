@@ -355,7 +355,7 @@ Describe 'send an e-mail to the admin when' {
                         $EntryType -eq 'Error'
                     }
                 }
-            } -Tag test 
+            }
             Context 'Backup' {
                 It 'Backup is missing' {
                     @{
@@ -640,7 +640,7 @@ Describe 'send an e-mail to the admin when' {
             }
         }
     }
-}
+} -tag test
 Describe 'when tests pass' {
     BeforeAll {
         Mock Start-Job {
