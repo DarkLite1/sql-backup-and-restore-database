@@ -68,12 +68,10 @@ Describe 'create an error when' {
         $actual.Error | Should -BeLike "Backup failed on 'pc1': oops*"
     }
     It 'the latest backup file cannot found' {
-        Mock Invoke-Sqlcmd -ParameterFilter {
-            $ComputerName -eq 'fail'
-        }
+        Mock Get-ChildItem
 
         $testParams = @{
-            ComputerName = 'fail'
+            ComputerName = 'pc1'
             Query        = 'EXECUTE dbo.DatabaseBackup'
             BackupFolder = 'TestDrive:\a\b\c\backup folder' 
         }   
@@ -81,7 +79,6 @@ Describe 'create an error when' {
 
         $actual.LatestBackupFile | Should -BeNullOrEmpty
         $actual.BackupOk | Should -BeTrue
-        $actual.CopyOk | Should -BeFalse
         $actual.Error | Should -BeLike "No backup file found in folder 'TestDrive:\a\b\c\backup folder' that is more recent than the script start time*"
     }
 }
