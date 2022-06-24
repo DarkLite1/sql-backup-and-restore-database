@@ -136,8 +136,8 @@ Describe 'send an e-mail to the admin when' {
                         CopyBackupFileToRestoreComputer = 4
                     }
                     ComputerName      = @{
-                        Backup  = $env:COMPUTERNAME
-                        Restore = $env:COMPUTERNAME
+                        Backup  = 'PC1'
+                        Restore = 'PC1'
                     }
                     Backup            = @{
                         Query  = "EXECUTE dbo.DatabaseBackup"
@@ -168,8 +168,8 @@ Describe 'send an e-mail to the admin when' {
                         }
                         # ComputerName      = @(
                         #     @{
-                        #         Backup      = $env:COMPUTERNAME
-                        #         Restore = $env:COMPUTERNAME
+                        #         Backup      = 'PC1'
+                        #         Restore = 'PC1'
                         #     }
                         # )
                         Backup            = @{
@@ -199,8 +199,8 @@ Describe 'send an e-mail to the admin when' {
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
-                            # Backup      = $env:COMPUTERNAME
-                            Restore = $env:COMPUTERNAME
+                            # Backup      = 'PC1'
+                            Restore = 'PC1'
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -229,8 +229,8 @@ Describe 'send an e-mail to the admin when' {
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
-                            Backup = $env:COMPUTERNAME
-                            # Restore = $env:COMPUTERNAME
+                            Backup = 'PC1'
+                            # Restore = 'PC1'
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -260,12 +260,12 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @(
                             @{
-                                Backup  = $env:COMPUTERNAME
-                                Restore = $env:COMPUTERNAME
+                                Backup  = 'PC1'
+                                Restore = 'PC2'
                             },
                             @{
-                                Backup  = $env:COMPUTERNAME
-                                Restore = $env:COMPUTERNAME
+                                Backup  = 'PC1'
+                                Restore = 'PC2'
                             }
                         )
                         Backup            = @{
@@ -281,7 +281,7 @@ Describe 'send an e-mail to the admin when' {
                     .$testScript @testParams
                 
                     Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
-                    (&$MailAdminParams) -and ($Message -like "*$ImportFile*Duplicate combination found in 'ComputerName': Backup: '$env:COMPUTERNAME' Restore '$env:COMPUTERNAME'*")
+                    (&$MailAdminParams) -and ($Message -like "*$ImportFile*Duplicate combination found in 'ComputerName': Backup: PC1 Restore: PC2*")
                     }
                     Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
                         $EntryType -eq 'Error'
@@ -323,7 +323,39 @@ Describe 'send an e-mail to the admin when' {
                         $EntryType -eq 'Error'
                     }
                 }
-            }
+                It 'backup is the same as restore' {
+                    @{
+                        MailTo            = @('bob@contoso.com')
+                        MaxConcurrentJobs = @{
+                            BackupAndRestore                = 6
+                            CopyBackupFileToRestoreComputer = 4
+                        }
+                        ComputerName      = @(
+                            @{
+                                Backup  = 'PC1'
+                                Restore = 'PC1'
+                            }
+                        )
+                        Backup            = @{
+                            Query  = "EXECUTE dbo.DatabaseBackup"
+                            Folder = $testBackupFolder 
+                        }
+                        Restore           = @{
+                            Query = "RESTORE DATABASE"
+                            File  = $testRestoreFile
+                        }
+                    } | ConvertTo-Json | Out-File @testOutParams
+       
+                    .$testScript @testParams
+                
+                    Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
+                    (&$MailAdminParams) -and ($Message -like "*$ImportFile*Computer name backup and restore cannot be the same 'Backup: PC1' Restore: PC1'*")
+                    }
+                    Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
+                        $EntryType -eq 'Error'
+                    }
+                }
+            } -Tag test 
             Context 'Backup' {
                 It 'Backup is missing' {
                     @{
@@ -333,8 +365,8 @@ Describe 'send an e-mail to the admin when' {
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
-                            Backup  = $env:COMPUTERNAME
-                            Restore = $env:COMPUTERNAME
+                            Backup  = 'PC1'
+                            Restore = 'PC1'
                         }
                         # Backup       = @{
                         #     Query  = "EXECUTE dbo.DatabaseBackup"
@@ -363,8 +395,8 @@ Describe 'send an e-mail to the admin when' {
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
-                            Backup  = $env:COMPUTERNAME
-                            Restore = $env:COMPUTERNAME
+                            Backup  = 'PC1'
+                            Restore = 'PC1'
                         }
                         Backup            = @{
                             # Query  = "EXECUTE dbo.DatabaseBackup"
@@ -393,8 +425,8 @@ Describe 'send an e-mail to the admin when' {
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
-                            Backup  = $env:COMPUTERNAME
-                            Restore = $env:COMPUTERNAME
+                            Backup  = 'PC1'
+                            Restore = 'PC1'
                         }
                         Backup            = @{
                             Query = "EXECUTE dbo.DatabaseBackup"
@@ -425,8 +457,8 @@ Describe 'send an e-mail to the admin when' {
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
-                            Backup  = $env:COMPUTERNAME
-                            Restore = $env:COMPUTERNAME
+                            Backup  = 'PC1'
+                            Restore = 'PC1'
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -455,8 +487,8 @@ Describe 'send an e-mail to the admin when' {
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
-                            Backup  = $env:COMPUTERNAME
-                            Restore = $env:COMPUTERNAME
+                            Backup  = 'PC1'
+                            Restore = 'PC1'
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -485,8 +517,8 @@ Describe 'send an e-mail to the admin when' {
                             CopyBackupFileToRestoreComputer = 4
                         }
                         ComputerName      = @{
-                            Backup  = $env:COMPUTERNAME
-                            Restore = $env:COMPUTERNAME
+                            Backup  = 'PC1'
+                            Restore = 'PC1'
                         }
                         Backup            = @{
                             Query  = "EXECUTE dbo.DatabaseBackup"
@@ -518,8 +550,8 @@ Describe 'send an e-mail to the admin when' {
                         # }
                         ComputerName = @(
                             @{
-                                Backup  = $env:COMPUTERNAME
-                                Restore = $env:COMPUTERNAME
+                                Backup  = 'PC1'
+                                Restore = 'PC1'
                             }
                         )
                         Backup       = @{
@@ -550,8 +582,8 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @(
                             @{
-                                Backup  = $env:COMPUTERNAME
-                                Restore = $env:COMPUTERNAME
+                                Backup  = 'PC1'
+                                Restore = 'PC1'
                             }
                         )
                         Backup            = @{
@@ -582,8 +614,8 @@ Describe 'send an e-mail to the admin when' {
                         }
                         ComputerName      = @(
                             @{
-                                Backup  = $env:COMPUTERNAME
-                                Restore = $env:COMPUTERNAME
+                                Backup  = 'PC1'
+                                Restore = 'PC1'
                             }
                         )
                         Backup            = @{
@@ -616,12 +648,12 @@ Describe 'when tests pass' {
                 New-Item "$using:TestDrive\backup\a\b\c\d\xyz.bak" -ItemType File
             }
         } -ParameterFilter {
-            ($ArgumentList[2] -eq 'Backup')
+            ($Name -eq 'Backup')
         }
         Mock Start-Job {
             & $realCmdLet.StartJob -Scriptblock { 1 }
         } -ParameterFilter {
-            ($ArgumentList[2] -eq 'Restore')
+            ($Name -eq 'Restore')
         }
 
         @{
@@ -632,8 +664,8 @@ Describe 'when tests pass' {
             }
             ComputerName      = @(
                 @{
-                    Backup  = $env:COMPUTERNAME
-                    Restore = $env:COMPUTERNAME
+                    Backup  = 'PC1'
+                    Restore = 'PC1'
                 }
             )
             Backup            = @{
@@ -652,14 +684,14 @@ Describe 'when tests pass' {
         . $testScript @testParams
     }
     It 'Start-Job is called with the backup script file' {
-
+        should -Invoke Start-Job -Times 1 -Exactly
     }
     Context 'in SQL' {
         It 'restore the database on the restore computer' {
             Should -Invoke  Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-            ($ArgumentList[0] -eq $env:COMPUTERNAME) -and
+            ($ArgumentList[0] -eq 'PC1') -and
             ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-            ($ArgumentList[2] -eq 'Restore')
+            ($Name -eq 'Restore')
             }
         }
     }
@@ -667,8 +699,8 @@ Describe 'when tests pass' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Backup      = $env:COMPUTERNAME
-                    Restore     = $env:COMPUTERNAME
+                    Backup      = 'PC1'
+                    Restore     = 'PC1'
                     BackupOk    = $true
                     RestoreOk   = $true
                     Error       = ''
@@ -743,14 +775,14 @@ Describe 'backup only on unique backup computers' {
                 New-Item "$using:TestDrive\backup\a\b\c\d\xyz.bak" -ItemType File
             }
         } -ParameterFilter {
-            ($ArgumentList[2] -eq 'Backup')
+            ($Name -eq 'Backup')
         }
         Mock Start-Job {
             & $realCmdLet.StartJob -Scriptblock { 
                 1
             }
         } -ParameterFilter {
-            ($ArgumentList[2] -eq 'Restore')
+            ($Name -eq 'Restore')
         }
 
         @{
@@ -761,11 +793,11 @@ Describe 'backup only on unique backup computers' {
             }
             ComputerName      = @(
                 @{
-                    Backup  = $env:COMPUTERNAME
-                    Restore = $env:COMPUTERNAME
+                    Backup  = 'PC1'
+                    Restore = 'PC1'
                 },
                 @{
-                    Backup  = $env:COMPUTERNAME
+                    Backup  = 'PC1'
                     Restore = 'P2'
                 }
             )
@@ -792,7 +824,7 @@ Describe 'backup only on unique backup computers' {
     Context 'Start-Job is called' {
         It 'once to create a backup' {
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-                ($ArgumentList[2] -eq 'Backup')
+                ($Name -eq 'Backup')
             }
         }
     }
@@ -805,8 +837,8 @@ Describe 'backup only on unique backup computers' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Backup      = $env:COMPUTERNAME
-                    Restore     = $env:COMPUTERNAME
+                    Backup      = 'PC1'
+                    Restore     = 'PC1'
                     BackupOk    = $true
                     RestoreOk   = $true
                     Error       = ''
@@ -814,7 +846,7 @@ Describe 'backup only on unique backup computers' {
                     RestoreFile = $testRestoreFile
                 },
                 @{
-                    Backup      = $env:COMPUTERNAME
+                    Backup      = 'PC1'
                     Restore     = 'P2'
                     BackupOk    = $true
                     RestoreOk   = $false
@@ -896,7 +928,7 @@ Describe 'when the backup computer is offline' {
             ComputerName      = @(
                 @{
                     Backup  = 'pcDown'
-                    Restore = $env:COMPUTERNAME
+                    Restore = 'PC1'
                 }
             )
             Backup            = @{
@@ -930,7 +962,7 @@ Describe 'when the backup computer is offline' {
             $testExportedExcelRows = @(
                 @{
                     Backup      = 'pcDown'
-                    Restore     = $env:COMPUTERNAME
+                    Restore     = 'PC1'
                     BackupOk    = $false
                     RestoreOk   = $false
                     Error       = "Backup computer 'pcDown' not online"
@@ -1010,7 +1042,7 @@ Describe 'when the restore computer is offline' {
             }
             ComputerName      = @(
                 @{
-                    Backup  = $env:COMPUTERNAME
+                    Backup  = 'PC1'
                     Restore = 'pcDown'
                 }
             )
@@ -1044,7 +1076,7 @@ Describe 'when the restore computer is offline' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Backup      = $env:COMPUTERNAME
+                    Backup      = 'PC1'
                     Restore     = 'pcDown'
                     BackupOk    = $false
                     RestoreOk   = $false
@@ -1121,7 +1153,7 @@ Describe 'when the backup fails' {
                 throw 'oops'
             }
         } -ParameterFilter {
-            ($ArgumentList[2] -eq 'Backup')
+            ($Name -eq 'Backup')
         }
 
         @{
@@ -1132,8 +1164,8 @@ Describe 'when the backup fails' {
             }
             ComputerName      = @(
                 @{
-                    Backup  = $env:COMPUTERNAME
-                    Restore = $env:COMPUTERNAME
+                    Backup  = 'PC1'
+                    Restore = 'PC1'
                 }
             )
             Backup            = @{
@@ -1159,7 +1191,7 @@ Describe 'when the backup fails' {
     Context 'Start-Job is called to' {
         It 'create a backup' {
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-                ($ArgumentList[2] -eq 'Backup')
+                ($Name -eq 'Backup')
             }
         }
         It 'not called to copy the backup file or for a restore' {
@@ -1172,8 +1204,8 @@ Describe 'when the backup fails' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Backup      = $env:COMPUTERNAME
-                    Restore     = $env:COMPUTERNAME
+                    Backup      = 'PC1'
+                    Restore     = 'PC1'
                     BackupOk    = $false
                     RestoreOk   = $false
                     Error       = 'oops'
@@ -1248,14 +1280,14 @@ Describe 'when the restore fails' {
                 New-Item "$using:TestDrive\backup\a\b\c\d\xyz.bak" -ItemType File
             }
         } -ParameterFilter {
-            ($ArgumentList[2] -eq 'Backup')
+            ($Name -eq 'Backup')
         }
         Mock Start-Job {
             & $realCmdLet.StartJob -Scriptblock { 
                 throw 'oops'
             }
         } -ParameterFilter {
-            ($ArgumentList[2] -eq 'Restore')
+            ($Name -eq 'Restore')
         }
 
         @{
@@ -1266,8 +1298,8 @@ Describe 'when the restore fails' {
             }
             ComputerName      = @(
                 @{
-                    Backup  = $env:COMPUTERNAME
-                    Restore = $env:COMPUTERNAME
+                    Backup  = 'PC1'
+                    Restore = 'PC1'
                 }
             )
             Backup            = @{
@@ -1293,12 +1325,12 @@ Describe 'when the restore fails' {
     Context 'Start-Job is called to' {
         It 'create a backup' {
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-                ($ArgumentList[2] -eq 'Backup')
+                ($Name -eq 'Backup')
             }
         } 
         It 'restore a backup' {
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-                ($ArgumentList[2] -eq 'Restore')
+                ($Name -eq 'Restore')
             }
         }
     }
@@ -1311,8 +1343,8 @@ Describe 'when the restore fails' {
         BeforeAll {
             $testExportedExcelRows = @(
                 @{
-                    Backup      = $env:COMPUTERNAME
-                    Restore     = $env:COMPUTERNAME
+                    Backup      = 'PC1'
+                    Restore     = 'PC1'
                     BackupOk    = $true
                     RestoreOk   = $false
                     Error       = 'oops'

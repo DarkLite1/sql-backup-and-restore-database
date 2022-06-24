@@ -149,12 +149,15 @@ Begin {
             if (-not $computerName.Restore) {
                 throw "Input file '$ImportFile': No 'Restore' computer name found in 'ComputerName'."
             }
+            if ($computerName.Backup -eq $computerName.Restore) {
+                throw "Input file '$ImportFile': Computer name backup and restore cannot be the same 'Backup: $($computerName.Backup)' Restore: $($computerName.Restore)'"
+            }
         }
 
         $Tasks | Select-Object -Property @{
             Name       = 'uniqueCombination';
             Expression = {
-                "Backup: '{0}' Restore '{1}'" -f $_.Backup, $_.Restore
+                "Backup: {0} Restore: {1}" -f $_.Backup, $_.Restore
             }
         } | Group-Object -Property 'uniqueCombination' | Where-Object {
             $_.Count -ge 2
