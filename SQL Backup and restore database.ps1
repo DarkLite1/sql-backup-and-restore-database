@@ -260,7 +260,7 @@ Process {
         foreach (
             $task in 
             $Tasks | Where-Object { -not $_.JobErrors } | 
-            Sort-Object -Property 'Backup' -Unique
+            Sort-Object -Property {$_.Backup} -Unique
         ) {
             #region Start backup
             $invokeParams = @{
