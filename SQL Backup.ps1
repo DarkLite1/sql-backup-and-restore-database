@@ -1,3 +1,4 @@
+[OutputType([PSCustomObject])]
 Param (
     [Parameter(Mandatory)]
     [String]$ComputerName,
