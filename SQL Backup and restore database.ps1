@@ -91,6 +91,88 @@ Begin {
             '\\{0}\{1}$' -f $ComputerName, $Path[0]
         )
     }
+    Function Get-JobDurationHC {
+        [OutputType([TimeSpan])]
+        Param (
+            [Parameter(Mandatory)]
+            [System.Management.Automation.Job]$Job,
+            [Parameter(Mandatory)]
+            [String]$ComputerName,
+            [TimeSpan]$PreviousJobDuration
+        )
+
+        $params = @{
+            Start = $Job.PSBeginTime
+            End   = $Job.PSEndTime
+        }
+        $jobDuration = New-TimeSpan @params
+
+        $M = "'{0}' job duration '{1:hh}:{1:mm}:{1:ss}'" -f 
+        $ComputerName, $jobDuration
+        Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+
+        if ($PreviousJobDuration) {
+            $PreviousJobDuration + $jobDuration
+        }
+        else {
+            $jobDuration
+        }
+    }
+    Function Get-JobResultsAndErrorsHC {
+        [OutputType([PSCustomObject])]
+        Param (
+            [Parameter(Mandatory)]
+            [System.Management.Automation.Job]$Job,
+            [Parameter(Mandatory)]
+            [String]$ComputerName
+        )
+
+        $result = [PSCustomObject]@{
+            Result = $null
+            Errors = @()
+        }
+
+        #region Get job results
+        $M = "'{0}' Get {1} job results" -f $ComputerName, $Job.Name.ToLower()
+        Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+              
+        $jobErrors = @()
+        $receiveParams = @{
+            ErrorVariable = 'jobErrors'
+            ErrorAction   = 'SilentlyContinue'
+        }
+        $result.Result = $Job | Receive-Job @receiveParams
+        #endregion
+   
+        #region Get job errors
+        foreach ($e in $jobErrors) {
+            $M = "'{0}' {1} job error '{2}'" -f 
+            $ComputerName, $Job.Name , $e.ToString()
+            Write-Warning $M; Write-EventLog @EventWarnParams -Message $M
+                  
+            $result.Errors += $M
+            $error.Remove($e)
+        }
+        if ($result.Result.Error) {
+            $M = "'{0}' {1} error '{2}'" -f 
+            $ComputerName, $Job.Name, $result.Result.Error
+            Write-Warning $M; Write-EventLog @EventWarnParams -Message $M
+   
+            $result.Errors += $M
+        }
+        #endregion
+
+        $result.Result = $result.Result | 
+        Select-Object -Property * -ExcludeProperty 'Error'
+
+        if (-not $result.Errors) {
+            $M = "'{0}' {1} job successful" -f 
+            $ComputerName, $Job.Name, $result.Result.Error
+            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+        }
+
+        $result
+    }
 
     Function Start-BackupJobHC {
         Param (
@@ -137,58 +219,30 @@ Begin {
     }
 
     $getBackupResultAndStartRestore = {
-        #region Get backup job results and errors
-        $M = "'{0}' Get job results for backup" -f 
-        $completedBackup.Backup
-        Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-           
-        $jobErrors = @()
-        $receiveParams = @{
-            ErrorVariable = 'jobErrors'
-            ErrorAction   = 'SilentlyContinue'
+        #region Get job results
+        $params = @{
+            Job          = $completedBackup.Job
+            ComputerName = $completedBackup.Backup
         }
-        $completedBackup.JobResult.Backup = $completedBackup.Job | 
-        Receive-Job @receiveParams
-   
-        $completedBackup.JobResult.Duration = if (
-            $completedBackup.JobResult.Duration
-        ) {
-            $completedBackup.JobResult.Duration +
-            ($completedBackup.Job.PSEndTime - $completedBackup.Job.PSBeginTime)
-        }
-        else {
-            $completedBackup.Job.PSEndTime - $completedBackup.Job.PSBeginTime
+        $jobOutput = Get-JobResultsAndErrorsHC @params
+
+        $completedBackup.JobResult.Backup = $jobOutput.Result
+        
+        $jobOutput.Errors | ForEach-Object { 
+            $completedBackup.JobErrors += $_ 
         }
 
-        foreach ($e in $jobErrors) {
-            $M = "'{0}' Backup job error '{1}'" -f 
-            $completedBackup.Backup, $e.ToString()
-            Write-Warning $M; Write-EventLog @EventWarnParams -Message $M
-               
-            $completedBackup.JobErrors += $e.ToString()
-            $error.Remove($e)
-        }
-        if ($completedBackup.JobResult.Backup.Error) {
-            $M = "'{0}' Backup error '{1}'" -f 
-            $completedBackup.Backup, $completedBackup.JobResult.Backup.Error
-            Write-Warning $M; Write-EventLog @EventWarnParams -Message $M
-
-            $completedBackup.JobErrors += 
-            $completedBackup.JobResult.Backup.Error
-        }
+        $completedBackup.JobResult.Duration = Get-JobDurationHC @params
         #endregion
-               
+
         $completedBackup.Job = $null
             
-        if ($completedBackup.JobResult.Backup.BackupOk) {
-            $M = "'{0}' Backup successful" -f $completedBackup.Backup
-            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-
+        if ($jobOutput.Result.BackupFile) {
             #region Start restore database
             $params = @{
                 ComputerName = $completedBackup.Restore
                 Query        = $file.Restore.Query
-                BackupFile   = $completedBackup.JobResult.Backup.BackupFile
+                BackupFile   = $jobOutput.Result.BackupFile
                 RestoreFile  = $completedBackup.UncPath.Restore
             }
             $completedBackup.Job = Start-RestoreJobHC @params
