@@ -1065,7 +1065,89 @@ Describe 'when a backup fails because' {
             }
         }
     }
-}
+    Context 'a backup computer is offline'  {
+        BeforeAll {
+            Mock Test-Connection {
+                $false
+            } -ParameterFilter { 
+                $ComputerName -eq 'pcOffline'
+             }
+            Mock Start-Job {
+                & $realCmdLet.StartJob -Scriptblock {
+                    [PSCustomObject]@{
+                        BackupOk   = $true
+                        BackupFile = $using:testBackupFile
+                        Error      = $null
+                    }
+                } -Name 'Backup'
+            } -ParameterFilter {
+                ($Name -eq 'Backup')
+            }
+            Mock Start-Job {
+                & $realCmdLet.StartJob -Scriptblock { 
+                    [PSCustomObject]@{
+                        CopyOk    = $true
+                        RestoreOk = $true
+                        Error     = $null
+                    }
+                } -Name 'Restore'
+            } -ParameterFilter {
+                ($Name -eq 'Restore')
+            }
+    
+            @{
+                MailTo            = @('bob@contoso.com')
+                MaxConcurrentJobs = 6
+                ComputerName      = @(
+                    @{
+                        Backup  = 'PC1'
+                        Restore = 'PC2'
+                    }
+                    @{
+                        Backup  = 'pcOffline'
+                        Restore = 'PC3'
+                    }
+                )
+                Backup            = @{
+                    Query  = "EXECUTE dbo.DatabaseBackup"
+                    Folder = $testBackupFolder 
+                }
+                Restore           = @{
+                    Query = "RESTORE DATABASE"
+                    File  = $testRestoreFile
+                }
+            } | ConvertTo-Json | Out-File @testOutParams
+    
+            . $testScript @testParams
+        }
+        It 'Start-Job is called only for the online backup computers' {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+                ($Name -eq 'Backup') -and
+                ($FilePath -like '*SQL Backup.ps1') -and
+                ($ArgumentList[0] -eq 'PC1') -and
+                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            }
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+                ($Name -eq 'Restore') -and
+                ($FilePath -like '*SQL Restore.ps1') -and
+                ($ArgumentList[0] -eq 'PC2') -and
+                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+                ($ArgumentList[2] -eq $testBackupFile)
+            }  
+        }
+        It 'Start-Job is not called for the offline backup computers' {
+            Should -Not -Invoke Start-Job -Scope Context -ParameterFilter {
+                ($ArgumentList[0] -eq 'pcOffline')
+            }
+            Should -Not -Invoke Start-Job -Scope Context -ParameterFilter {
+                ($ArgumentList[0] -eq 'PC3')
+            }
+        }
+    }
+} -Tag test
+
+
 Describe 'when tests pass' {
     BeforeAll {
         Mock Start-Job {
@@ -1215,262 +1297,6 @@ Describe 'when tests pass' {
         }
     }
 } #-Tag test 
-Describe 'backup only on unique backup computers' {
-    BeforeAll {
-        Mock Start-Job {
-            & $realCmdLet.StartJob -Scriptblock { 
-                New-Item "$using:TestDrive\backup\a\b\c\d\xyz.bak" -ItemType File
-            }
-        } -ParameterFilter {
-            ($Name -eq 'Backup')
-        }
-        Mock Start-Job {
-            & $realCmdLet.StartJob -Scriptblock { 
-                1
-            }
-        } -ParameterFilter {
-            ($Name -eq 'Restore')
-        }
-
-        @{
-            MailTo            = @('bob@contoso.com')
-            MaxConcurrentJobs = 6
-            ComputerName      = @(
-                @{
-                    Backup  = 'PC1'
-                    Restore = 'PC2'
-                },
-                @{
-                    Backup  = 'PC1'
-                    Restore = 'P3'
-                }
-            )
-            Backup            = @{
-                Query  = "EXECUTE dbo.DatabaseBackup"
-                Folder = $testBackupFolder 
-            }
-            Restore           = @{
-                Query = "RESTORE DATABASE"
-                File  = $testRestoreFile
-            }
-        } | ConvertTo-Json | Out-File @testOutParams
-
-        . $testScript @testParams
-    }
-    Context 'a folder is created for' {
-        It 'the backup on the backup computer' {
-            $testBackupFolder | Should -Exist
-        }
-        It 'the restore on the restore computer' {
-            $testRestoreFile | Split-Path | Should -Exist
-        }
-    } 
-    Context 'Start-Job is called' {
-        It 'once to create a backup' {
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-                ($Name -eq 'Backup')
-            }
-        }
-    }
-    Context 'copy the most recent backup file' {
-        It 'from the backup to the restore computer' {
-            $testRestoreFile | Should -Exist
-        }
-    } 
-    Context 'export an Excel file' {
-        BeforeAll {
-            $testExportedExcelRows = @(
-                @{
-                    Backup      = 'PC1'
-                    Restore     = 'PC2'
-                    BackupOk    = $true
-                    RestoreOk   = $true
-                    Error       = ''
-                    BackupFile  = $testBackupFile
-                    RestoreFile = $testRestoreFile
-                },
-                @{
-                    Backup      = 'PC1'
-                    Restore     = 'P3'
-                    BackupOk    = $true
-                    RestoreOk   = $false
-                    Error       = "Computer 'PC3' not online"
-                    BackupFile  = $null
-                    RestoreFile = $null
-                }
-            )
-
-            $testExcelLogFile = Get-ChildItem $testParams.LogFolder -File -Recurse -Filter '* - Log.xlsx'
-
-            $actual = Import-Excel -Path $testExcelLogFile.FullName -WorksheetName 'Overview'
-        }
-        It 'to the log folder' {
-            $testExcelLogFile | Should -Not -BeNullOrEmpty
-        }
-        It 'with the correct total rows' {
-            $actual | Should -HaveCount $testExportedExcelRows.Count
-        }
-        It 'with the correct data in the rows' {
-            foreach ($testRow in $testExportedExcelRows) {
-                $actualRow = $actual | Where-Object {
-                    $_.Restore -eq $testRow.Restore
-                }
-                $actualRow.Backup | Should -Be $testRow.Backup
-                $actualRow.Backup | Should -Be $testRow.Backup
-                $actualRow.Restore | Should -Be $testRow.Restore
-                $actualRow.Error | Should -Be $testRow.Error
-                $actualRow.BackupFile | Should -Be $testRow.BackupFile
-                $actualRow.RestoreFile | Should -Be $testRow.RestoreFile
-            }
-        }
-    } 
-    Context 'send a mail to the user with' {
-        It 'To Bcc Priority Subject' {
-            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                ($To -eq 'bob@contoso.com') -and
-                ($Bcc -eq $ScriptAdmin) -and
-                ($Priority -eq 'High') -and
-                ($Subject -eq '2 tasks, 2 backups, 1 restore, 1 error')
-            }
-        }
-        It 'Attachments' {
-            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                ($Attachments -like '* - Log.xlsx')
-            }
-        }
-        It 'Message' {
-            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                ($Message -like (
-                    "*Summary*<th>Total tasks</th>*<td>2</td>*<th>Successful backups</th>*<td>2</td>*<th>Successful restores</th>*<td>1</td>*<th>Errors</th>*<td>1</td>*<p><i>* Check the attachment for details</i></p>*"
-                ))
-            }
-        }
-        It 'Everything' {
-            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                ($To -eq 'bob@contoso.com') -and
-                ($Bcc -eq $ScriptAdmin) -and
-                ($Priority -eq 'High') -and
-                ($Subject -eq '2 tasks, 2 backups, 1 restore, 1 error') -and
-                ($Attachments -like '* - Log.xlsx') -and
-                ($Message -like (
-                    "*Summary*<th>Total tasks</th>*<td>2</td>*<th>Successful backups</th>*<td>2</td>*<th>Successful restores</th>*<td>1</td>*<th>Errors</th>*<td>1</td>*<p><i>* Check the attachment for details</i></p>*"
-                ))
-            }
-        }
-    } 
-}
-Describe 'when the backup computer is offline' {
-    BeforeAll {
-        Mock Start-Job 
-
-        @{
-            MailTo            = @('bob@contoso.com')
-            MaxConcurrentJobs = 6
-            ComputerName      = @(
-                @{
-                    Backup  = 'pcDown'
-                    Restore = 'PC1'
-                }
-            )
-            Backup            = @{
-                Query  = "EXECUTE dbo.DatabaseBackup"
-                Folder = $testBackupFolder 
-            }
-            Restore           = @{
-                Query = "RESTORE DATABASE"
-                File  = $testRestoreFile
-            }
-        } | ConvertTo-Json | Out-File @testOutParams
-
-        $testBackupFolder | Should -Not -Exist
-        $testRestoreFile | Should -Not -Exist
-
-        . $testScript @testParams
-    }
-    Context  'create no folder for' {
-        It 'backup on the backup computer' {
-            $testBackupFolder | Should -Not -Exist
-        }
-        It 'restore on the restore computer' {
-            $testRestoreFile | Split-Path | Should -Not -Exist
-        }
-    }
-    It 'do not create a database backup a restore or a copy file' {
-        Should -Not -Invoke  Start-Job 
-    }  
-    Context 'export an Excel file' {
-        BeforeAll {
-            $testExportedExcelRows = @(
-                @{
-                    Backup      = 'pcDown'
-                    Restore     = 'PC1'
-                    BackupOk    = $false
-                    RestoreOk   = $false
-                    Error       = "Backup computer 'pcDown' not online"
-                    BackupFile  = $null
-                    RestoreFile = $null
-                }
-            )
-
-            $testExcelLogFile = Get-ChildItem $testParams.LogFolder -File -Recurse -Filter '* - Log.xlsx'
-
-            $actual = Import-Excel -Path $testExcelLogFile.FullName -WorksheetName 'Overview'
-        }
-        It 'to the log folder' {
-            $testExcelLogFile | Should -Not -BeNullOrEmpty
-        }
-        It 'with the correct total rows' {
-            $actual | Should -HaveCount $testExportedExcelRows.Count
-        }
-        It 'with the correct data in the rows' {
-            foreach ($testRow in $testExportedExcelRows) {
-                $actualRow = $actual | Where-Object {
-                    $_.Restore -eq $testRow.Restore
-                }
-                $actualRow.Backup | Should -Be $testRow.Backup
-                $actualRow.Backup | Should -Be $testRow.Backup
-                $actualRow.Restore | Should -Be $testRow.Restore
-                $actualRow.Error | Should -Be $testRow.Error
-                $actualRow.BackupFile | Should -Be $testRow.BackupFile
-                $actualRow.RestoreFile | Should -Be $testRow.RestoreFile
-            }
-        }
-    }
-    Context 'send a mail to the user with' {
-        It 'To Bcc Priority Subject' {
-            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                ($To -eq 'bob@contoso.com') -and
-                ($Bcc -eq $ScriptAdmin) -and
-                ($Priority -eq 'High') -and
-                ($Subject -eq '1 task, 0 backups, 0 restores, 1 error')
-            }
-        }
-        It 'Attachments' {
-            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                ($Attachments -like '* - Log.xlsx')
-            }
-        }
-        It 'Message' {
-            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                ($Message -like (
-                    "*Summary*<th>Total tasks</th>*<td>1</td>*<th>Successful backups</th>*<td>0</td>*<th>Successful restores</th>*<td>0</td>*<th>Errors</th>*<td>1</td>*<p><i>* Check the attachment for details</i></p>*"
-                ))
-            }
-        }
-        It 'Everything' {
-            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                ($To -eq 'bob@contoso.com') -and
-                ($Bcc -eq $ScriptAdmin) -and
-                ($Priority -eq 'High') -and
-                ($Subject -eq '1 task, 0 backups, 0 restores, 1 error') -and
-                ($Attachments -like '* - Log.xlsx') -and
-                ($Message -like (
-                    "*Summary*<th>Total tasks</th>*<td>1</td>*<th>Successful backups</th>*<td>0</td>*<th>Successful restores</th>*<td>0</td>*<th>Errors</th>*<td>1</td>*<p><i>* Check the attachment for details</i></p>*"
-                ))
-            }
-        }
-    }
-} 
 Describe 'when the restore computer is offline' {
     BeforeAll {
         Mock Start-Job 
