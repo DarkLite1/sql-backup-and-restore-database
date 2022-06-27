@@ -113,6 +113,29 @@ Begin {
         Start-Job @params
     }
 
+    Function Start-RestoreJobHC {
+        Param (
+            [Parameter(Mandatory)]
+            [String]$ComputerName,
+            [Parameter(Mandatory)]
+            [String]$Query,
+            [Parameter(Mandatory)]
+            [String]$BackupFile,
+            [Parameter(Mandatory)]
+            [String]$RestoreFile
+        )
+
+        $M = "'{0}' Start database restore" -f $ComputerName
+        Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+
+        $params = @{
+            Name         = 'Restore'
+            FilePath     = $ScriptFile.Restore
+            ArgumentList = $ComputerName, $Query, $BackupFile, $RestoreFile
+        }
+        Start-Job @params
+    }
+
     $getBackupResultAndStartRestore = {
         #region Get backup job results and errors
         $M = "'{0}' Get job results for backup" -f 
@@ -162,19 +185,13 @@ Begin {
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
             #region Start restore database
-            $invokeParams = @{
-                Name         = 'Restore'
-                FilePath     = $ScriptFile.Restore
-                ArgumentList = $completedBackup.Restore, 
-                $file.Restore.Query, 
-                $completedBackup.JobResult.Backup.BackupFile, 
-                $completedBackup.UncPath.Restore
+            $params = @{
+                ComputerName = $completedBackup.Restore
+                Query        = $file.Restore.Query
+                BackupFile   = $completedBackup.JobResult.Backup.BackupFile
+                RestoreFile  = $completedBackup.UncPath.Restore
             }
-        
-            $M = "'{0}' Start database restore" -f $invokeParams.ArgumentList[0]
-            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-
-            $completedBackup.Job = Start-Job @invokeParams
+            $completedBackup.Job = Start-RestoreJobHC @params
             #endregion
             
             #region Wait for max running jobs
