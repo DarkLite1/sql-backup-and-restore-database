@@ -92,6 +92,27 @@ Begin {
         )
     }
 
+    Function Start-BackupJobHC {
+        Param (
+            [Parameter(Mandatory)]
+            [String]$ComputerName,
+            [Parameter(Mandatory)]
+            [String]$Query,
+            [Parameter(Mandatory)]
+            [String]$BackupFolder
+        )
+
+        $M = "'{0}' Start database backup" -f $ComputerName
+        Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+
+        $params = @{
+            Name         = 'Backup'
+            FilePath     = $ScriptFile.Backup
+            ArgumentList = $ComputerName, $Query, $BackupFolder
+        }
+        Start-Job @params
+    }
+
     $getBackupResultAndStartRestore = {
         #region Get backup job results and errors
         $M = "'{0}' Get job results for backup" -f 
@@ -349,17 +370,12 @@ Process {
             Sort-Object -Property { $_.Backup } -Unique
         ) {
             #region Start backup
-            $invokeParams = @{
-                Name         = 'Backup'
-                FilePath     = $ScriptFile.Backup
-                ArgumentList = $task.Backup, $file.Backup.Query, 
-                $task.UncPath.Backup
+            $params = @{
+                ComputerName = $task.Backup
+                Query        = $file.Backup.Query
+                BackupFolder = $task.UncPath.Backup
             }
-
-            $M = "'{0}' Start database backup" -f $invokeParams.ArgumentList[0]
-            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
-
-            $task.Job = Start-Job @invokeParams
+            $task.Job = Start-BackupJobHC @params
             #endregion
             
             #region Wait for max running jobs
