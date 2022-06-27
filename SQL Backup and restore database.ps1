@@ -261,6 +261,27 @@ Begin {
             }
         }
     }
+    $getRestoreResult = {
+        #region Get job results
+        $params = @{
+            Job          = $completedRestore.Job
+            ComputerName = $completedRestore.Restore
+        }
+        $jobOutput = Get-JobResultsAndErrorsHC @params
+
+        $completedRestore.JobResult.Duration = Get-JobDurationHC @params -PreviousJobDuration $completedRestore.JobResult.Duration
+        #endregion
+
+        #region Add job results
+        $completedRestore.JobResult.Restore = $jobOutput.Result
+
+        $jobOutput.Errors | ForEach-Object { 
+            $completedRestore.JobErrors += $_ 
+        }
+        #endregion
+            
+        $completedRestore.Job = $null
+    }
 
     try {
         Import-EventLogParamsHC -Source $ScriptName
@@ -498,17 +519,32 @@ Process {
         }
         #endregion
 
-        #region Wait for jobs to finish
-        if ($runningJobs = $Tasks | Where-Object { $_.Job }) {
-            $M = "Wait for '{0}' backup jobs to finish" -f 
-            ($runningJobs | Measure-Object).Count
+        #region Wait for restore jobs to finish and get results
+        while (
+            $restoreJobs = $Tasks | Where-Object {
+                ($_.Job.Name -eq 'Restore') 
+            }
+        ) {
+            #region Verbose progress
+            $runningRestoreJobCounter = ($restoreJobs | Measure-Object).Count
+            if ($runningRestoreJobCounter -eq 1) {
+                $M = 'Wait for the last running restore job to finish'
+            }
+            else {
+                $M = "Wait for one of the '{0}' running restore jobs to finish" -f $runningRestoreJobCounter
+            }
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+            #endregion
 
-            $null = $runningJobs | Wait-Job
+            $finishedJob = $restoreJobs.Job | Wait-Job -Any
+            
+            $completedRestore = $restoreJobs | Where-Object {
+                $_.Job.Id -eq $finishedJob.Id
+            }
+            
+            & $getRestoreResult
         }
         #endregion
-
-        # Get restore job results
      
         #region Export to Excel file
         $exportToExcel = $Tasks | Select-Object -Property 'Backup', 
