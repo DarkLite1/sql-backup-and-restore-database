@@ -7,6 +7,7 @@
         The path on the backup computer where the backup file is located. This
         file will be copied to the path in RestoreFile.
 #>
+[OutputType([PSCustomObject])]
 Param (
     [Parameter(Mandatory)]
     [String]$ComputerName,
