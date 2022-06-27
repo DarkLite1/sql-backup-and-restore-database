@@ -564,454 +564,728 @@ Describe 'send an e-mail to the admin when' {
         }
     }
 }
-Describe 'Start-Job is called' {
-    Context 'for one backup and one restore computer' {
-        BeforeAll {
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock {
-                    [PSCustomObject]@{
-                        BackupOk   = $true
-                        BackupFile = $using:testBackupFile
-                        Error      = $null
-                    }
-                } -Name 'Backup'
-            } -ParameterFilter {
+Describe 'for one backup and one restore computer' {
+    BeforeAll {
+        Mock Start-Job {
+            & $realCmdLet.StartJob -Scriptblock {
+                [PSCustomObject]@{
+                    BackupOk   = $true
+                    BackupFile = $using:testBackupFile
+                    Error      = $null
+                }
+            } -Name 'Backup'
+        } -ParameterFilter {
                 ($Name -eq 'Backup')
-            }
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock { 
-                    [PSCustomObject]@{
-                        CopyOk    = $true
-                        RestoreOk = $true
-                        Error     = $null
-                    }
-                } -Name 'Restore'
-            } -ParameterFilter {
-                ($Name -eq 'Restore')
-            }
-    
-            @{
-                MailTo            = @('bob@contoso.com')
-                MaxConcurrentJobs = 6
-                ComputerName      = @(
-                    @{
-                        Backup  = 'PC1'
-                        Restore = 'PC2'
-                    }
-                )
-                Backup            = @{
-                    Query  = "EXECUTE dbo.DatabaseBackup"
-                    Folder = $testBackupFolder 
-                }
-                Restore           = @{
-                    Query = "RESTORE DATABASE"
-                    File  = $testRestoreFile
-                }
-            } | ConvertTo-Json | Out-File @testOutParams
-    
-            . $testScript @testParams
         }
+        Mock Start-Job {
+            & $realCmdLet.StartJob -Scriptblock { 
+                [PSCustomObject]@{
+                    CopyOk    = $true
+                    RestoreOk = $true
+                    Error     = $null
+                }
+            } -Name 'Restore'
+        } -ParameterFilter {
+                ($Name -eq 'Restore')
+        }
+    
+        @{
+            MailTo            = @('bob@contoso.com')
+            MaxConcurrentJobs = 6
+            ComputerName      = @(
+                @{
+                    Backup  = 'PC1'
+                    Restore = 'PC2'
+                }
+            )
+            Backup            = @{
+                Query  = "EXECUTE dbo.DatabaseBackup"
+                Folder = $testBackupFolder 
+            }
+            Restore           = @{
+                Query = "RESTORE DATABASE"
+                File  = $testRestoreFile
+            }
+        } | ConvertTo-Json | Out-File @testOutParams
+    
+        . $testScript @testParams
+    }
+    Context 'Start-Job is called' {
         It 'once to create a database backup' {
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
                 ($Name -eq 'Backup') -and
                 ($FilePath -like '*SQL Backup.ps1') -and
                 ($ArgumentList[0] -eq 'PC1') -and
                 ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
                 ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
             }
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
                 ($Name -eq 'Backup')
             }
         }
         It 'once to restore a database backup' {
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
                 ($Name -eq 'Restore') -and
                 ($FilePath -like '*SQL Restore.ps1') -and
                 ($ArgumentList[0] -eq 'PC2') -and
                 ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
                 ($ArgumentList[2] -eq $testBackupFile)
             }
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
                 ($Name -eq 'Restore')
             }
         }
-        Context 'export an Excel file' {
-            BeforeAll {
-                $testExportedExcelRows = @(
-                    @{
-                        Backup      = 'PC1'
-                        Restore     = 'PC2'
-                        BackupOk    = $true
-                        CopyOk      = $true
-                        RestoreOk   = $true
-                        Error       = ''
-                        BackupFile  = $testBackupFile
-                        RestoreFile = $testRestoreFile
-                    }
-                )
+    }
+    Context 'export an Excel file' {
+        BeforeAll {
+            $testExportedExcelRows = @(
+                @{
+                    Backup      = 'PC1'
+                    Restore     = 'PC2'
+                    BackupOk    = $true
+                    CopyOk      = $true
+                    RestoreOk   = $true
+                    Error       = ''
+                    BackupFile  = $testBackupFile
+                    RestoreFile = $testRestoreFile
+                }
+            )
 
-                $testExcelLogFile = Get-ChildItem $testParams.LogFolder -File -Recurse -Filter '* - Log.xlsx'
+            $testExcelLogFile = Get-ChildItem $testParams.LogFolder -File -Recurse -Filter '* - Log.xlsx'
     
-                $actual = Import-Excel -Path $testExcelLogFile.FullName -WorksheetName 'Overview'
-            }
-            It 'to the log folder' {
-                $testExcelLogFile | Should -Not -BeNullOrEmpty
-            }
-            It 'with the correct total rows' {
-                $actual | Should -HaveCount $testExportedExcelRows.Count
-            }
-            It 'with the correct data in the rows' {
-                foreach ($testRow in $testExportedExcelRows) {
-                    $actualRow = $actual | Where-Object {
-                        $_.Restore -eq $testRow.Restore
-                    }
-                    $actualRow.Backup | Should -Be $testRow.Backup
-                    $actualRow.Backup | Should -Be $testRow.Backup
-                    $actualRow.Restore | Should -Be $testRow.Restore
-                    $actualRow.Error | Should -Be $testRow.Error
-                    $actualRow.BackupFile | Should -Be $testRow.BackupFile
-                    $actualRow.RestoreFile | Should -Be $testRow.RestoreFile
+            $actual = Import-Excel -Path $testExcelLogFile.FullName -WorksheetName 'Overview'
+        }
+        It 'to the log folder' {
+            $testExcelLogFile | Should -Not -BeNullOrEmpty
+        }
+        It 'with the correct total rows' {
+            $actual | Should -HaveCount $testExportedExcelRows.Count
+        }
+        It 'with the correct data in the rows' {
+            foreach ($testRow in $testExportedExcelRows) {
+                $actualRow = $actual | Where-Object {
+                    $_.Restore -eq $testRow.Restore
                 }
+                $actualRow.Backup | Should -Be $testRow.Backup
+                $actualRow.Backup | Should -Be $testRow.Backup
+                $actualRow.Restore | Should -Be $testRow.Restore
+                $actualRow.Error | Should -Be $testRow.Error
+                $actualRow.BackupFile | Should -Be $testRow.BackupFile
+                $actualRow.RestoreFile | Should -Be $testRow.RestoreFile
             }
-        } -Tag test
-        Context 'send a mail to the user with' {
-            BeforeAll {
-                $testMail = @{
-                    Priority = 'Normal'
-                    Subject  = '1 task, 1 backup, 1 restore'
-                    Message  = "*Summary*<th>Total tasks</th>*<td>1</td>*<th>Successful backups</th>*<td>1</td>*<th>Successful restores</th>*<td>1</td>*<th>Errors</th>*<td>0</td>*<p><i>* Check the attachment for details</i></p>*"
-                }
+        }
+    }
+    Context 'send a mail to the user with' {
+        BeforeAll {
+            $testMail = @{
+                Priority = 'Normal'
+                Subject  = '1 task, 1 backup, 1 restore'
+                Message  = "*Summary*<th>Total tasks</th>*<td>1</td>*<th>Successful backups</th>*<td>1</td>*<th>Successful restores</th>*<td>1</td>*<th>Errors</th>*<td>0</td>*<p><i>* Check the attachment for details</i></p>*"
             }
-            It 'To Bcc Priority Subject' {
-                Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+        }
+        It 'To Bcc Priority Subject' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
                     ($To -eq 'bob@contoso.com') -and
                     ($Bcc -eq $ScriptAdmin) -and
                     ($Priority -eq $testMail.Priority) -and
                     ($Subject -eq $testMail.Subject)
-                }
             }
-            It 'Attachments' {
-                Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+        }
+        It 'Attachments' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
                     ($Attachments -like '* - Log.xlsx')
-                }
             }
-            It 'Message' {
-                Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                    $Message -like $testMail.Message
-                }
+        }
+        It 'Message' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                $Message -like $testMail.Message
             }
-            It 'Everything' {
-                Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+        }
+        It 'Everything' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
                     ($To -eq 'bob@contoso.com') -and
                     ($Bcc -eq $ScriptAdmin) -and
                     ($Priority -eq $testMail.Priority) -and
                     ($Subject -eq $testMail.Subject) -and
                     ($Attachments -like '* - Log.xlsx') -and
                     ($Message -like $testMail.Message)
-                }
             }
-        } -Tag test
-    }
-    Context 'for two different backup and restore computers' {
-        BeforeAll {
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock {
-                    [PSCustomObject]@{
-                        BackupOk   = $true
-                        BackupFile = $using:testBackupFile
-                        Error      = $null
-                    }
-                } -Name 'Backup'
-            } -ParameterFilter {
-                ($Name -eq 'Backup')
-            }
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock { 
-                    [PSCustomObject]@{
-                        CopyOk    = $true
-                        RestoreOk = $true
-                        Error     = $null
-                    }
-                } -Name 'Restore'
-            } -ParameterFilter {
-                ($Name -eq 'Restore')
-            }
-    
-            @{
-                MailTo            = @('bob@contoso.com')
-                MaxConcurrentJobs = 6
-                ComputerName      = @(
-                    @{
-                        Backup  = 'PC1'
-                        Restore = 'PC2'
-                    }
-                    @{
-                        Backup  = 'PC3'
-                        Restore = 'PC4'
-                    }
-                )
-                Backup            = @{
-                    Query  = "EXECUTE dbo.DatabaseBackup"
-                    Folder = $testBackupFolder 
-                }
-                Restore           = @{
-                    Query = "RESTORE DATABASE"
-                    File  = $testRestoreFile
-                }
-            } | ConvertTo-Json | Out-File @testOutParams
-    
-            . $testScript @testParams
         }
+    }
+}
+Describe 'for two different backup and restore computers' {
+    BeforeAll {
+        Mock Start-Job {
+            & $realCmdLet.StartJob -Scriptblock {
+                [PSCustomObject]@{
+                    BackupOk   = $true
+                    BackupFile = $using:testBackupFile
+                    Error      = $null
+                }
+            } -Name 'Backup'
+        } -ParameterFilter {
+            ($Name -eq 'Backup')
+        }
+        Mock Start-Job {
+            & $realCmdLet.StartJob -Scriptblock { 
+                [PSCustomObject]@{
+                    CopyOk    = $true
+                    RestoreOk = $true
+                    Error     = $null
+                }
+            } -Name 'Restore'
+        } -ParameterFilter {
+            ($Name -eq 'Restore')
+        }
+
+        @{
+            MailTo            = @('bob@contoso.com')
+            MaxConcurrentJobs = 6
+            ComputerName      = @(
+                @{
+                    Backup  = 'PC1'
+                    Restore = 'PC2'
+                }
+                @{
+                    Backup  = 'PC3'
+                    Restore = 'PC4'
+                }
+            )
+            Backup            = @{
+                Query  = "EXECUTE dbo.DatabaseBackup"
+                Folder = $testBackupFolder 
+            }
+            Restore           = @{
+                Query = "RESTORE DATABASE"
+                File  = $testRestoreFile
+            }
+        } | ConvertTo-Json | Out-File @testOutParams
+
+        . $testScript @testParams
+    }
+    Context 'Start-Job is called' {
         It 'twice to create a database backup' {
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($FilePath -like '*SQL Backup.ps1') -and
-                ($ArgumentList[0] -eq 'PC1') -and
-                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
-                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Backup') -and
+            ($FilePath -like '*SQL Backup.ps1') -and
+            ($ArgumentList[0] -eq 'PC1') -and
+            ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+            ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
             }
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($FilePath -like '*SQL Backup.ps1') -and
-                ($ArgumentList[0] -eq 'PC3') -and
-                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
-                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Backup') -and
+            ($FilePath -like '*SQL Backup.ps1') -and
+            ($ArgumentList[0] -eq 'PC3') -and
+            ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+            ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
             }
-            Should -Invoke Start-Job -Times 2 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Backup')
+            Should -Invoke Start-Job -Times 2 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Backup')
             }
         }
         It 'twice to restore a database backup' {
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Restore') -and
-                ($FilePath -like '*SQL Restore.ps1') -and
-                ($ArgumentList[0] -eq 'PC2') -and
-                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-                ($ArgumentList[2] -eq $testBackupFile)
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Restore') -and
+            ($FilePath -like '*SQL Restore.ps1') -and
+            ($ArgumentList[0] -eq 'PC2') -and
+            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+            ($ArgumentList[2] -eq $testBackupFile)
             }
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Restore') -and
-                ($FilePath -like '*SQL Restore.ps1') -and
-                ($ArgumentList[0] -eq 'PC4') -and
-                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-                ($ArgumentList[2] -eq $testBackupFile)
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Restore') -and
+            ($FilePath -like '*SQL Restore.ps1') -and
+            ($ArgumentList[0] -eq 'PC4') -and
+            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+            ($ArgumentList[2] -eq $testBackupFile)
             }
-            Should -Invoke Start-Job -Times 2 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Restore')
+            Should -Invoke Start-Job -Times 2 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Restore')
             }
         }
     }
-    Context 'for the same backup computer with multiple restore computers' {
+    Context 'export an Excel file' {
         BeforeAll {
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock {
-                    [PSCustomObject]@{
-                        BackupOk   = $true
-                        BackupFile = $using:testBackupFile
-                        Error      = $null
-                    }
-                } -Name 'Backup'
-            } -ParameterFilter {
-                ($Name -eq 'Backup')
-            }
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock { 
-                    [PSCustomObject]@{
-                        CopyOk    = $true
-                        RestoreOk = $true
-                        Error     = $null
-                    }
-                } -Name 'Restore'
-            } -ParameterFilter {
-                ($Name -eq 'Restore')
-            }
-    
-            @{
-                MailTo            = @('bob@contoso.com')
-                MaxConcurrentJobs = 6
-                ComputerName      = @(
-                    @{
-                        Backup  = 'PC1'
-                        Restore = 'PC2'
-                    }
-                    @{
-                        Backup  = 'PC1'
-                        Restore = 'PC4'
-                    }
-                )
-                Backup            = @{
-                    Query  = "EXECUTE dbo.DatabaseBackup"
-                    Folder = $testBackupFolder 
+            $testExportedExcelRows = @(
+                @{
+                    Backup      = 'PC1'
+                    Restore     = 'PC2'
+                    BackupOk    = $true
+                    CopyOk      = $true
+                    RestoreOk   = $true
+                    Error       = ''
+                    BackupFile  = $testBackupFile
+                    RestoreFile = $testRestoreFile
                 }
-                Restore           = @{
-                    Query = "RESTORE DATABASE"
-                    File  = $testRestoreFile
+                @{
+                    Backup      = 'PC3'
+                    Restore     = 'PC4'
+                    BackupOk    = $true
+                    CopyOk      = $true
+                    RestoreOk   = $true
+                    Error       = ''
+                    BackupFile  = $testBackupFile
+                    RestoreFile = $testRestoreFile
                 }
-            } | ConvertTo-Json | Out-File @testOutParams
+            )
+
+            $testExcelLogFile = Get-ChildItem $testParams.LogFolder -File -Recurse -Filter '* - Log.xlsx'
     
-            . $testScript @testParams
+            $actual = Import-Excel -Path $testExcelLogFile.FullName -WorksheetName 'Overview'
         }
+        It 'to the log folder' {
+            $testExcelLogFile | Should -Not -BeNullOrEmpty
+        }
+        It 'with the correct total rows' {
+            $actual | Should -HaveCount $testExportedExcelRows.Count
+        }
+        It 'with the correct data in the rows' {
+            foreach ($testRow in $testExportedExcelRows) {
+                $actualRow = $actual | Where-Object {
+                    $_.Restore -eq $testRow.Restore
+                }
+                $actualRow.Backup | Should -Be $testRow.Backup
+                $actualRow.Backup | Should -Be $testRow.Backup
+                $actualRow.Restore | Should -Be $testRow.Restore
+                $actualRow.Error | Should -Be $testRow.Error
+                $actualRow.BackupFile | Should -Be $testRow.BackupFile
+                $actualRow.RestoreFile | Should -Be $testRow.RestoreFile
+            }
+        }
+    }
+    Context 'send a mail to the user with' {
+        BeforeAll {
+            $testMail = @{
+                Priority = 'Normal'
+                Subject  = '2 tasks, 2 backups, 2 restores'
+                Message  = "*Summary*<th>Total tasks</th>*<td>2</td>*<th>Successful backups</th>*<td>2</td>*<th>Successful restores</th>*<td>2</td>*<th>Errors</th>*<td>0</td>*<p><i>* Check the attachment for details</i></p>*"
+            }
+        }
+        It 'To Bcc Priority Subject' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                    ($To -eq 'bob@contoso.com') -and
+                    ($Bcc -eq $ScriptAdmin) -and
+                    ($Priority -eq $testMail.Priority) -and
+                    ($Subject -eq $testMail.Subject)
+            }
+        }
+        It 'Attachments' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                    ($Attachments -like '* - Log.xlsx')
+            }
+        }
+        It 'Message' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                $Message -like $testMail.Message
+            }
+        }
+        It 'Everything' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                    ($To -eq 'bob@contoso.com') -and
+                    ($Bcc -eq $ScriptAdmin) -and
+                    ($Priority -eq $testMail.Priority) -and
+                    ($Subject -eq $testMail.Subject) -and
+                    ($Attachments -like '* - Log.xlsx') -and
+                    ($Message -like $testMail.Message)
+            }
+        }
+    }
+}
+Describe 'for the same backup computer with multiple restore computers' {
+    BeforeAll {
+        Mock Start-Job {
+            & $realCmdLet.StartJob -Scriptblock {
+                [PSCustomObject]@{
+                    BackupOk   = $true
+                    BackupFile = $using:testBackupFile
+                    Error      = $null
+                }
+            } -Name 'Backup'
+        } -ParameterFilter {
+            ($Name -eq 'Backup')
+        }
+        Mock Start-Job {
+            & $realCmdLet.StartJob -Scriptblock { 
+                [PSCustomObject]@{
+                    CopyOk    = $true
+                    RestoreOk = $true
+                    Error     = $null
+                }
+            } -Name 'Restore'
+        } -ParameterFilter {
+            ($Name -eq 'Restore')
+        }
+
+        @{
+            MailTo            = @('bob@contoso.com')
+            MaxConcurrentJobs = 6
+            ComputerName      = @(
+                @{
+                    Backup  = 'PC1'
+                    Restore = 'PC2'
+                }
+                @{
+                    Backup  = 'PC1'
+                    Restore = 'PC4'
+                }
+            )
+            Backup            = @{
+                Query  = "EXECUTE dbo.DatabaseBackup"
+                Folder = $testBackupFolder 
+            }
+            Restore           = @{
+                Query = "RESTORE DATABASE"
+                File  = $testRestoreFile
+            }
+        } | ConvertTo-Json | Out-File @testOutParams
+
+        . $testScript @testParams
+    }
+    Context 'Start-Job is called' {
         It 'once to create a database backup' {
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($FilePath -like '*SQL Backup.ps1') -and
-                ($ArgumentList[0] -eq 'PC1') -and
-                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
-                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Backup') -and
+            ($FilePath -like '*SQL Backup.ps1') -and
+            ($ArgumentList[0] -eq 'PC1') -and
+            ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+            ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
             }
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Backup')
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Backup')
             }
         }
         It 'twice to restore a database backup' {
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Restore') -and
-                ($FilePath -like '*SQL Restore.ps1') -and
-                ($ArgumentList[0] -eq 'PC2') -and
-                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-                ($ArgumentList[2] -eq $testBackupFile)
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Restore') -and
+            ($FilePath -like '*SQL Restore.ps1') -and
+            ($ArgumentList[0] -eq 'PC2') -and
+            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+            ($ArgumentList[2] -eq $testBackupFile)
             }
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Restore') -and
-                ($FilePath -like '*SQL Restore.ps1') -and
-                ($ArgumentList[0] -eq 'PC4') -and
-                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-                ($ArgumentList[2] -eq $testBackupFile)
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Restore') -and
+            ($FilePath -like '*SQL Restore.ps1') -and
+            ($ArgumentList[0] -eq 'PC4') -and
+            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+            ($ArgumentList[2] -eq $testBackupFile)
             }
-            Should -Invoke Start-Job -Times 2 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Restore')
+            Should -Invoke Start-Job -Times 2 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Restore')
             }
         }
     }
-    Context 'with MaxConcurrentJobs set to 1' {
+    Context 'export an Excel file' {
         BeforeAll {
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock {
-                    [PSCustomObject]@{
-                        BackupOk   = $true
-                        BackupFile = 'a'
-                        Error      = $null
-                    }
-                } -Name 'Backup'
-            } -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($ArgumentList[0] -eq 'PC1') 
-            }
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock {
-                    [PSCustomObject]@{
-                        BackupOk   = $true
-                        BackupFile = 'b'
-                        Error      = $null
-                    }
-                } -Name 'Backup'
-            } -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($ArgumentList[0] -eq 'PC3') 
-            }
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock {
-                    [PSCustomObject]@{
-                        BackupOk   = $true
-                        BackupFile = 'c'
-                        Error      = $null
-                    }
-                } -Name 'Backup'
-            } -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($ArgumentList[0] -eq 'PC5') 
-            }
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock { 
-                    [PSCustomObject]@{
-                        CopyOk    = $true
-                        RestoreOk = $true
-                        Error     = $null
-                    }
-                } -Name 'Restore'
-            } -ParameterFilter {
-                ($Name -eq 'Restore')
-            }
-    
-            @{
-                MailTo            = @('bob@contoso.com')
-                MaxConcurrentJobs = 1
-                ComputerName      = @(
-                    @{
-                        Backup  = 'PC1'
-                        Restore = 'PC2'
-                    }
-                    @{
-                        Backup  = 'PC3'
-                        Restore = 'PC4'
-                    }
-                    @{
-                        Backup  = 'PC5'
-                        Restore = 'PC6'
-                    }
-                )
-                Backup            = @{
-                    Query  = "EXECUTE dbo.DatabaseBackup"
-                    Folder = $testBackupFolder 
+            $testExportedExcelRows = @(
+                @{
+                    Backup      = 'PC1'
+                    Restore     = 'PC2'
+                    BackupOk    = $true
+                    CopyOk      = $true
+                    RestoreOk   = $true
+                    Error       = ''
+                    BackupFile  = $testBackupFile
+                    RestoreFile = $testRestoreFile
                 }
-                Restore           = @{
-                    Query = "RESTORE DATABASE"
-                    File  = $testRestoreFile
+                @{
+                    Backup      = 'PC1'
+                    Restore     = 'PC4'
+                    BackupOk    = $true
+                    CopyOk      = $true
+                    RestoreOk   = $true
+                    Error       = ''
+                    BackupFile  = $testBackupFile
+                    RestoreFile = $testRestoreFile
                 }
-            } | ConvertTo-Json | Out-File @testOutParams
+            )
+
+            $testExcelLogFile = Get-ChildItem $testParams.LogFolder -File -Recurse -Filter '* - Log.xlsx'
     
-            . $testScript @testParams
+            $actual = Import-Excel -Path $testExcelLogFile.FullName -WorksheetName 'Overview'
         }
+        It 'to the log folder' {
+            $testExcelLogFile | Should -Not -BeNullOrEmpty
+        }
+        It 'with the correct total rows' {
+            $actual | Should -HaveCount $testExportedExcelRows.Count
+        }
+        It 'with the correct data in the rows' {
+            foreach ($testRow in $testExportedExcelRows) {
+                $actualRow = $actual | Where-Object {
+                    $_.Restore -eq $testRow.Restore
+                }
+                $actualRow.Backup | Should -Be $testRow.Backup
+                $actualRow.Backup | Should -Be $testRow.Backup
+                $actualRow.Restore | Should -Be $testRow.Restore
+                $actualRow.Error | Should -Be $testRow.Error
+                $actualRow.BackupFile | Should -Be $testRow.BackupFile
+                $actualRow.RestoreFile | Should -Be $testRow.RestoreFile
+            }
+        }
+    }
+    Context 'send a mail to the user with' {
+        BeforeAll {
+            $testMail = @{
+                Priority = 'Normal'
+                Subject  = '2 tasks, 2 backups, 2 restores'
+                Message  = "*Summary*<th>Total tasks</th>*<td>2</td>*<th>Successful backups</th>*<td>2</td>*<th>Successful restores</th>*<td>2</td>*<th>Errors</th>*<td>0</td>*<p><i>* Check the attachment for details</i></p>*"
+            }
+        }
+        It 'To Bcc Priority Subject' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                    ($To -eq 'bob@contoso.com') -and
+                    ($Bcc -eq $ScriptAdmin) -and
+                    ($Priority -eq $testMail.Priority) -and
+                    ($Subject -eq $testMail.Subject)
+            }
+        }
+        It 'Attachments' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                    ($Attachments -like '* - Log.xlsx')
+            }
+        }
+        It 'Message' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                $Message -like $testMail.Message
+            }
+        }
+        It 'Everything' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                    ($To -eq 'bob@contoso.com') -and
+                    ($Bcc -eq $ScriptAdmin) -and
+                    ($Priority -eq $testMail.Priority) -and
+                    ($Subject -eq $testMail.Subject) -and
+                    ($Attachments -like '* - Log.xlsx') -and
+                    ($Message -like $testMail.Message)
+            }
+        }
+    }
+}
+Describe 'when executing only one job at a time' {
+    BeforeAll {
+        Mock Start-Job {
+            & $realCmdLet.StartJob -Scriptblock {
+                [PSCustomObject]@{
+                    BackupOk   = $true
+                    BackupFile = 'a'
+                    Error      = $null
+                }
+            } -Name 'Backup'
+        } -ParameterFilter {
+            ($Name -eq 'Backup') -and
+            ($ArgumentList[0] -eq 'PC1') 
+        }
+        Mock Start-Job {
+            & $realCmdLet.StartJob -Scriptblock {
+                [PSCustomObject]@{
+                    BackupOk   = $true
+                    BackupFile = 'b'
+                    Error      = $null
+                }
+            } -Name 'Backup'
+        } -ParameterFilter {
+            ($Name -eq 'Backup') -and
+            ($ArgumentList[0] -eq 'PC3') 
+        }
+        Mock Start-Job {
+            & $realCmdLet.StartJob -Scriptblock {
+                [PSCustomObject]@{
+                    BackupOk   = $true
+                    BackupFile = 'c'
+                    Error      = $null
+                }
+            } -Name 'Backup'
+        } -ParameterFilter {
+            ($Name -eq 'Backup') -and
+            ($ArgumentList[0] -eq 'PC5') 
+        }
+        Mock Start-Job {
+            & $realCmdLet.StartJob -Scriptblock { 
+                [PSCustomObject]@{
+                    CopyOk    = $true
+                    RestoreOk = $true
+                    Error     = $null
+                }
+            } -Name 'Restore'
+        } -ParameterFilter {
+            ($Name -eq 'Restore')
+        }
+
+        @{
+            MailTo            = @('bob@contoso.com')
+            MaxConcurrentJobs = 1
+            ComputerName      = @(
+                @{
+                    Backup  = 'PC1'
+                    Restore = 'PC2'
+                }
+                @{
+                    Backup  = 'PC3'
+                    Restore = 'PC4'
+                }
+                @{
+                    Backup  = 'PC5'
+                    Restore = 'PC6'
+                }
+            )
+            Backup            = @{
+                Query  = "EXECUTE dbo.DatabaseBackup"
+                Folder = $testBackupFolder 
+            }
+            Restore           = @{
+                Query = "RESTORE DATABASE"
+                File  = $testRestoreFile
+            }
+        } | ConvertTo-Json | Out-File @testOutParams
+
+        . $testScript @testParams
+    }
+    Context 'Start-Job is called' {
         It 'to create a database backup' {
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($FilePath -like '*SQL Backup.ps1') -and
-                ($ArgumentList[0] -eq 'PC1') -and
-                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
-                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Backup') -and
+            ($FilePath -like '*SQL Backup.ps1') -and
+            ($ArgumentList[0] -eq 'PC1') -and
+            ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+            ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
             }
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($FilePath -like '*SQL Backup.ps1') -and
-                ($ArgumentList[0] -eq 'PC3') -and
-                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
-                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Backup') -and
+            ($FilePath -like '*SQL Backup.ps1') -and
+            ($ArgumentList[0] -eq 'PC3') -and
+            ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+            ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
             }
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($FilePath -like '*SQL Backup.ps1') -and
-                ($ArgumentList[0] -eq 'PC5') -and
-                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
-                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Backup') -and
+            ($FilePath -like '*SQL Backup.ps1') -and
+            ($ArgumentList[0] -eq 'PC5') -and
+            ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+            ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
             }
-            Should -Invoke Start-Job -Times 3 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Backup')
+            Should -Invoke Start-Job -Times 3 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Backup')
             }
         }
         It 'to restore the database backup with the correct backup file' {
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Restore') -and
-                ($FilePath -like '*SQL Restore.ps1') -and
-                ($ArgumentList[0] -eq 'PC2') -and
-                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-                ($ArgumentList[2] -eq 'a')
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Restore') -and
+            ($FilePath -like '*SQL Restore.ps1') -and
+            ($ArgumentList[0] -eq 'PC2') -and
+            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+            ($ArgumentList[2] -eq 'a')
             }
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Restore') -and
-                ($FilePath -like '*SQL Restore.ps1') -and
-                ($ArgumentList[0] -eq 'PC4') -and
-                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-                ($ArgumentList[2] -eq 'b')
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Restore') -and
+            ($FilePath -like '*SQL Restore.ps1') -and
+            ($ArgumentList[0] -eq 'PC4') -and
+            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+            ($ArgumentList[2] -eq 'b')
             }
-            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Restore') -and
-                ($FilePath -like '*SQL Restore.ps1') -and
-                ($ArgumentList[0] -eq 'PC6') -and
-                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-                ($ArgumentList[2] -eq 'c')
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Restore') -and
+            ($FilePath -like '*SQL Restore.ps1') -and
+            ($ArgumentList[0] -eq 'PC6') -and
+            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+            ($ArgumentList[2] -eq 'c')
             }
-            Should -Invoke Start-Job -Times 3 -Exactly -Scope Context -ParameterFilter {
-                ($Name -eq 'Restore')
+            Should -Invoke Start-Job -Times 3 -Exactly -Scope Describe -ParameterFilter {
+            ($Name -eq 'Restore')
+            }
+        }
+    }
+    Context 'export an Excel file' {
+        BeforeAll {
+            $testExportedExcelRows = @(
+                @{
+                    Backup      = 'PC1'
+                    Restore     = 'PC2'
+                    BackupOk    = $true
+                    CopyOk      = $true
+                    RestoreOk   = $true
+                    Error       = ''
+                    BackupFile  = 'a'
+                    RestoreFile = $testRestoreFile
+                }
+                @{
+                    Backup      = 'PC3'
+                    Restore     = 'PC4'
+                    BackupOk    = $true
+                    CopyOk      = $true
+                    RestoreOk   = $true
+                    Error       = ''
+                    BackupFile  = 'b'
+                    RestoreFile = $testRestoreFile
+                }
+                @{
+                    Backup      = 'PC5'
+                    Restore     = 'PC6'
+                    BackupOk    = $true
+                    CopyOk      = $true
+                    RestoreOk   = $true
+                    Error       = ''
+                    BackupFile  = 'c'
+                    RestoreFile = $testRestoreFile
+                }
+            )
+
+            $testExcelLogFile = Get-ChildItem $testParams.LogFolder -File -Recurse -Filter '* - Log.xlsx'
+    
+            $actual = Import-Excel -Path $testExcelLogFile.FullName -WorksheetName 'Overview'
+        }
+        It 'to the log folder' {
+            $testExcelLogFile | Should -Not -BeNullOrEmpty
+        }
+        It 'with the correct total rows' {
+            $actual | Should -HaveCount $testExportedExcelRows.Count
+        }
+        It 'with the correct data in the rows' {
+            foreach ($testRow in $testExportedExcelRows) {
+                $actualRow = $actual | Where-Object {
+                    $_.Restore -eq $testRow.Restore
+                }
+                $actualRow.Backup | Should -Be $testRow.Backup
+                $actualRow.Backup | Should -Be $testRow.Backup
+                $actualRow.Restore | Should -Be $testRow.Restore
+                $actualRow.Error | Should -Be $testRow.Error
+                $actualRow.BackupFile | Should -Be $testRow.BackupFile
+                $actualRow.RestoreFile | Should -Be $testRow.RestoreFile
+            }
+        }
+    }
+    Context 'send a mail to the user with' {
+        BeforeAll {
+            $testMail = @{
+                Priority = 'Normal'
+                Subject  = '3 tasks, 3 backups, 3 restores'
+                Message  = "*Summary*<th>Total tasks</th>*<td>3</td>*<th>Successful backups</th>*<td>3</td>*<th>Successful restores</th>*<td>3</td>*<th>Errors</th>*<td>0</td>*<p><i>* Check the attachment for details</i></p>*"
+            }
+        }
+        It 'To Bcc Priority Subject' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                    ($To -eq 'bob@contoso.com') -and
+                    ($Bcc -eq $ScriptAdmin) -and
+                    ($Priority -eq $testMail.Priority) -and
+                    ($Subject -eq $testMail.Subject)
+            }
+        }
+        It 'Attachments' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                    ($Attachments -like '* - Log.xlsx')
+            }
+        }
+        It 'Message' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                $Message -like $testMail.Message
+            }
+        }
+        It 'Everything' {
+            Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
+                    ($To -eq 'bob@contoso.com') -and
+                    ($Bcc -eq $ScriptAdmin) -and
+                    ($Priority -eq $testMail.Priority) -and
+                    ($Subject -eq $testMail.Subject) -and
+                    ($Attachments -like '* - Log.xlsx') -and
+                    ($Message -like $testMail.Message)
             }
         }
     }
