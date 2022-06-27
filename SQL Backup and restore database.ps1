@@ -548,7 +548,39 @@ Process {
      
         #region Export to Excel file
         $exportToExcel = $Tasks | Select-Object -Property 'Backup', 
-        'Restore', 'BackupOk', 'RestoreOk', 'BackupFile', 'RestoreFile',
+        'Restore', 
+        @{
+            Name       = 'BackupOk';
+            Expression = {
+                [boolean]$_.JobResult.Backup.BackupOk
+            }
+        },
+        @{
+            Name       = 'CopyOk';
+            Expression = {
+                [boolean]$_.JobResult.Restore.CopyOk
+            }
+        },
+        @{
+            Name       = 'RestoreOk';
+            Expression = {
+                [boolean]$_.JobResult.Restore.RestoreOk
+            }
+        },
+        @{
+            Name       = 'BackupFile';
+            Expression = {
+                $_.JobResult.Backup.BackupFile
+            }
+        },
+        @{
+            Name       = 'RestoreFile';
+            Expression = {
+                if ($_.JobResult.Restore.CopyOk) {
+                    $_.UncPath.Restore
+                }
+            }
+        },
         @{
             Name       = 'Error';
             Expression = {
@@ -678,6 +710,10 @@ End {
             "<p><i>* Check the attachment for details</i></p>"
         }
    
+        Write-Verbose $mailParams.Priority
+        Write-Verbose $mailParams.Subject
+        Write-Verbose $mailParams.Message
+
         Get-ScriptRuntimeHC -Stop
         Send-MailHC @mailParams
         #endregion
