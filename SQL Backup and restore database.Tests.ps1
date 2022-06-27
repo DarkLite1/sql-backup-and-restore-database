@@ -818,32 +818,8 @@ Describe 'Start-Job is called' {
                     }
                 } -Name 'Backup'
             } -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($ArgumentList[0] -eq 'PC1') 
-            }
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock {
-                    [PSCustomObject]@{
-                        BackupOk   = $true
-                        BackupFile = $using:testBackupFile
-                        Error      = $null
-                    }
-                } -Name 'Backup'
-            } -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($ArgumentList[0] -eq 'PC3') 
-            }
-            Mock Start-Job {
-                & $realCmdLet.StartJob -Scriptblock {
-                    [PSCustomObject]@{
-                        BackupOk   = $true
-                        BackupFile = $using:testBackupFile
-                        Error      = $null
-                    }
-                } -Name 'Backup'
-            } -ParameterFilter {
-                ($Name -eq 'Backup') -and
-                ($ArgumentList[0] -eq 'PC5') 
+                ($Name -eq 'Backup') 
+               
             }
             Mock Start-Job {
                 & $realCmdLet.StartJob -Scriptblock { 
