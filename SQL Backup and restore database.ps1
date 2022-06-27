@@ -108,8 +108,8 @@ Begin {
         }
         $jobDuration = New-TimeSpan @params
 
-        $M = "'{0}' job duration '{1:hh}:{1:mm}:{1:ss}'" -f 
-        $ComputerName, $jobDuration
+        $M = "'{0}' {2} job duration '{1:hh}:{1:mm}:{1:ss}'" -f 
+        $ComputerName, $jobDuration, $Job.Name
         Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
         if ($PreviousJobDuration) {
@@ -134,7 +134,7 @@ Begin {
         }
 
         #region Get job results
-        $M = "'{0}' Get {1} job results" -f $ComputerName, $Job.Name.ToLower()
+        $M = "'{0}' {1} job get results" -f $ComputerName, $Job.Name
         Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
               
         $jobErrors = @()
@@ -174,7 +174,6 @@ Begin {
 
         $result
     }
-
     Function Start-BackupJobHC {
         Param (
             [Parameter(Mandatory)]
@@ -195,7 +194,6 @@ Begin {
         }
         Start-Job @params
     }
-
     Function Start-RestoreJobHC {
         Param (
             [Parameter(Mandatory)]
