@@ -308,10 +308,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'backup is the same as restore' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @(
                             @{
                                 Backup  = 'PC1'
@@ -594,10 +591,7 @@ Describe 'when tests pass' {
 
         @{
             MailTo            = @('bob@contoso.com')
-            MaxConcurrentJobs = @{
-                BackupAndRestore                = 6
-                CopyBackupFileToRestoreComputer = 4
-            }
+            MaxConcurrentJobs = 6
             ComputerName      = @(
                 @{
                     Backup  = 'PC1'
@@ -635,7 +629,7 @@ Describe 'when tests pass' {
                 ($ArgumentList[2] -eq $testBackupFile)
             }
         }
-    } #-Tag test 
+    } -Tag test 
     
     Context 'in SQL' {
         It 'restore the database on the restore computer' {
@@ -981,10 +975,7 @@ Describe 'when the restore computer is offline' {
 
         @{
             MailTo            = @('bob@contoso.com')
-            MaxConcurrentJobs = @{
-                BackupAndRestore                = 6
-                CopyBackupFileToRestoreComputer = 4
-            }
+            MaxConcurrentJobs = 6
             ComputerName      = @(
                 @{
                     Backup  = 'PC1'
