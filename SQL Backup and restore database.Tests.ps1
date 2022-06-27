@@ -131,10 +131,7 @@ Describe 'send an e-mail to the admin when' {
             It 'MailTo is missing' {
                 @{
                     # MailTo       = @('bob@contoso.com')
-                    MaxConcurrentJobs = @{
-                        BackupAndRestore                = 6
-                        CopyBackupFileToRestoreComputer = 4
-                    }
+                    MaxConcurrentJobs = 6
                     ComputerName      = @{
                         Backup  = 'PC1'
                         Restore = 'PC2'
@@ -162,10 +159,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'ComputerName is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         # ComputerName      = @(
                         #     @{
                         #         Backup      = 'PC1'
@@ -194,10 +188,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'Backup is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @{
                             # Backup      = 'PC1'
                             Restore = 'PC1'
@@ -224,10 +215,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'Restore is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @{
                             Backup = 'PC1'
                             # Restore = 'PC1'
@@ -254,10 +242,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'duplicate backup and restore is found' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @(
                             @{
                                 Backup  = 'PC1'
@@ -290,10 +275,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'duplicate restore is found' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @(
                             @{
                                 Backup  = 'PC1'
@@ -360,10 +342,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'Backup is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @{
                             Backup  = 'PC1'
                             Restore = 'PC2'
@@ -390,10 +369,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'Query is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @{
                             Backup  = 'PC1'
                             Restore = 'PC2'
@@ -420,10 +396,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'Folder is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @{
                             Backup  = 'PC1'
                             Restore = 'PC2'
@@ -452,10 +425,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'Restore is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @{
                             Backup  = 'PC1'
                             Restore = 'PC2'
@@ -482,10 +452,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'Query is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @{
                             Backup  = 'PC1'
                             Restore = 'PC2'
@@ -512,10 +479,7 @@ Describe 'send an e-mail to the admin when' {
                 It 'File is missing' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore                = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 6
                         ComputerName      = @{
                             Backup  = 'PC1'
                             Restore = 'PC2'
@@ -541,13 +505,10 @@ Describe 'send an e-mail to the admin when' {
                 }
             }
             Context 'MaxConcurrentJobs' {
-                It 'MaxConcurrentJobs is missing' {
+                It 'is missing' {
                     @{
                         MailTo       = @('bob@contoso.com')
-                        # MaxConcurrentJobs = @{
-                        #     BackupAndRestore            = 6
-                        #     CopyBackupFileToRestoreComputer = 4
-                        # }
+                        # MaxConcurrentJobs = 6
                         ComputerName = @(
                             @{
                                 Backup  = 'PC1'
@@ -573,13 +534,10 @@ Describe 'send an e-mail to the admin when' {
                         $EntryType -eq 'Error'
                     }
                 }
-                It 'Query is missing' {
+                It 'is not a number' {
                     @{
                         MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            # BackupAndRestore            = 6
-                            CopyBackupFileToRestoreComputer = 4
-                        }
+                        MaxConcurrentJobs = 'a'
                         ComputerName      = @(
                             @{
                                 Backup  = 'PC1'
@@ -599,39 +557,7 @@ Describe 'send an e-mail to the admin when' {
                     .$testScript @testParams
                     
                     Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
-                        (&$MailAdminParams) -and ($Message -like "*$ImportFile*Property 'BackupAndRestore' not found in property 'MaxConcurrentJobs'.*")
-                    }
-                    Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
-                        $EntryType -eq 'Error'
-                    }
-                }
-                It 'File is missing' {
-                    @{
-                        MailTo            = @('bob@contoso.com')
-                        MaxConcurrentJobs = @{
-                            BackupAndRestore = 6
-                            # CopyBackupFileToRestoreComputer = 4
-                        }
-                        ComputerName      = @(
-                            @{
-                                Backup  = 'PC1'
-                                Restore = 'PC2'
-                            }
-                        )
-                        Backup            = @{
-                            Query  = "EXECUTE dbo.DatabaseBackup"
-                            Folder = $testBackupFolder 
-                        }
-                        Restore           = @{
-                            Query = "RESTORE DATABASE"
-                            File  = $testRestoreFile
-                        }
-                    } | ConvertTo-Json | Out-File @testOutParams
-                    
-                    .$testScript @testParams
-                    
-                    Should -Invoke Send-MailHC -Exactly 1 -ParameterFilter {
-                        (&$MailAdminParams) -and ($Message -like "*$ImportFile*Property 'CopyBackupFileToRestoreComputer' not found in property 'MaxConcurrentJobs'.*")
+                        (&$MailAdminParams) -and ($Message -like "*$ImportFile*Property 'MaxConcurrentJobs' needs to be a number, the value 'a' is not supported*")
                     }
                     Should -Invoke Write-EventLog -Exactly 1 -ParameterFilter {
                         $EntryType -eq 'Error'
@@ -709,7 +635,7 @@ Describe 'when tests pass' {
                 ($ArgumentList[2] -eq $testBackupFile)
             }
         }
-    } -Tag test 
+    } #-Tag test 
     
     Context 'in SQL' {
         It 'restore the database on the restore computer' {
@@ -812,10 +738,7 @@ Describe 'backup only on unique backup computers' {
 
         @{
             MailTo            = @('bob@contoso.com')
-            MaxConcurrentJobs = @{
-                BackupAndRestore                = 6
-                CopyBackupFileToRestoreComputer = 4
-            }
+            MaxConcurrentJobs = 6
             ComputerName      = @(
                 @{
                     Backup  = 'PC1'
@@ -946,10 +869,7 @@ Describe 'when the backup computer is offline' {
 
         @{
             MailTo            = @('bob@contoso.com')
-            MaxConcurrentJobs = @{
-                BackupAndRestore                = 6
-                CopyBackupFileToRestoreComputer = 4
-            }
+            MaxConcurrentJobs = 6
             ComputerName      = @(
                 @{
                     Backup  = 'pcDown'
@@ -1183,10 +1103,7 @@ Describe 'when the backup fails' {
 
         @{
             MailTo            = @('bob@contoso.com')
-            MaxConcurrentJobs = @{
-                BackupAndRestore                = 6
-                CopyBackupFileToRestoreComputer = 4
-            }
+            MaxConcurrentJobs = 6
             ComputerName      = @(
                 @{
                     Backup  = 'PC1'
@@ -1317,10 +1234,7 @@ Describe 'when the restore fails' {
 
         @{
             MailTo            = @('bob@contoso.com')
-            MaxConcurrentJobs = @{
-                BackupAndRestore                = 6
-                CopyBackupFileToRestoreComputer = 4
-            }
+            MaxConcurrentJobs = 6
             ComputerName      = @(
                 @{
                     Backup  = 'PC1'

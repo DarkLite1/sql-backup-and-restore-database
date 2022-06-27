@@ -55,14 +55,6 @@
         Defines the maximum number of jobs that are allowed to run at the same 
         time. This is convenient to throttle job execution so the system does 
         not get overloaded.
-
-    .PARAMETER MaxConcurrentJobs.BackupAndRestore
-        The number of backup and restore jobs are allowed to run at the same 
-        time.
-
-    .PARAMETER MaxConcurrentJobs.CopyBackupFileToRestoreComputer
-        The maximum number of backup files that are allowed to be copied at the
-        same time.
 #>
 
 [CmdLetBinding()]
@@ -259,7 +251,7 @@ Begin {
                 #region Wait for max running jobs
                 $waitParams = @{
                     Name       = $Tasks.Job | Where-Object { $_ }
-                    MaxThreads = $file.MaxConcurrentJobs.BackupAndRestore
+                    MaxThreads = $file.MaxConcurrentJobs
                 }
                 Wait-MaxRunningJobsHC @waitParams
                 #endregion
@@ -369,14 +361,11 @@ Begin {
             throw "Input file '$ImportFile': Property 'File' not found in property 'Restore'."
         }
 
-        if (-not ($file.MaxConcurrentJobs)) {
+        if ($file.PSObject.Properties.Name -notContains 'MaxConcurrentJobs') {
             throw "Input file '$ImportFile': Property 'MaxConcurrentJobs' not found."
         }
-        if (-not ($file.MaxConcurrentJobs.BackupAndRestore)) {
-            throw "Input file '$ImportFile': Property 'BackupAndRestore' not found in property 'MaxConcurrentJobs'."
-        }
-        if (-not ($file.MaxConcurrentJobs.CopyBackupFileToRestoreComputer)) {
-            throw "Input file '$ImportFile': Property 'CopyBackupFileToRestoreComputer' not found in property 'MaxConcurrentJobs'."
+        if (-not ($file.MaxConcurrentJobs -is [int])) {
+            throw "Input file '$ImportFile': Property 'MaxConcurrentJobs' needs to be a number, the value '$($file.MaxConcurrentJobs)' is not supported."
         }
         #endregion
 
@@ -464,7 +453,7 @@ Process {
             #region Wait for max running jobs
             $waitParams = @{
                 Name       = $Tasks.Job | Where-Object { $_ }
-                MaxThreads = $file.MaxConcurrentJobs.BackupAndRestore
+                MaxThreads = $file.MaxConcurrentJobs
             }
             Wait-MaxRunningJobsHC @waitParams
             #endregion
