@@ -81,6 +81,7 @@ Param (
 
 Begin {
     Function ConvertTo-UncPathHC {
+        [OutputType([String])]
         Param (
             [Parameter(Mandatory)]
             [String]$Path,
