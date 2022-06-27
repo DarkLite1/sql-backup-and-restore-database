@@ -100,7 +100,7 @@ Begin {
         }
         $jobDuration = New-TimeSpan @params
 
-        $M = "'{0}' {2} job duration '{1:hh}:{1:mm}:{1:ss}:{1:fff}'" -f 
+        $M = "'{0}' {2} job duration '{1:hh}:{1:mm}:{1:ss}" -f 
         $ComputerName, $jobDuration, $Job.Name
         Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
