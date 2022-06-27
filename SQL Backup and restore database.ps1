@@ -224,36 +224,49 @@ Begin {
             ComputerName = $completedBackup.Backup
         }
         $jobOutput = Get-JobResultsAndErrorsHC @params
-
-        $completedBackup.JobResult.Backup = $jobOutput.Result
-        
-        $jobOutput.Errors | ForEach-Object { 
-            $completedBackup.JobErrors += $_ 
-        }
-
-        $completedBackup.JobResult.Duration = Get-JobDurationHC @params
+        $jobDuration = Get-JobDurationHC @params
         #endregion
 
-        $completedBackup.Job = $null
-            
-        if ($jobOutput.Result.BackupFile) {
-            #region Start restore database
-            $params = @{
-                ComputerName = $completedBackup.Restore
-                Query        = $file.Restore.Query
-                BackupFile   = $jobOutput.Result.BackupFile
-                RestoreFile  = $completedBackup.UncPath.Restore
+        foreach (
+            $backupTask in 
+            $Tasks | Where-Object { 
+                (-not $_.JobErrors) -and
+                ($_.Job.Name -ne 'Restore') -and
+                ($_.Backup -eq $completedBackup.Backup)
+            } 
+        ) {
+            #region Add job results
+            $backupTask.JobResult.Backup = $jobOutput.Result
+
+            $jobOutput.Errors | ForEach-Object { 
+                $backupTask.JobErrors += $_ 
             }
-            $completedBackup.Job = Start-RestoreJobHC @params
+
+            $backupTask.JobResult.Duration = $jobDuration
             #endregion
             
-            #region Wait for max running jobs
-            $waitParams = @{
-                Name       = $Tasks.Job | Where-Object { $_ }
-                MaxThreads = $file.MaxConcurrentJobs.BackupAndRestore
+            if ($jobOutput.Result.BackupFile) {
+                #region Start restore database
+                $params = @{
+                    ComputerName = $backupTask.Restore
+                    Query        = $file.Restore.Query
+                    BackupFile   = $jobOutput.Result.BackupFile
+                    RestoreFile  = $backupTask.UncPath.Restore
+                }
+                $backupTask.Job = Start-RestoreJobHC @params
+                #endregion
+                
+                #region Wait for max running jobs
+                $waitParams = @{
+                    Name       = $Tasks.Job | Where-Object { $_ }
+                    MaxThreads = $file.MaxConcurrentJobs.BackupAndRestore
+                }
+                Wait-MaxRunningJobsHC @waitParams
+                #endregion
             }
-            Wait-MaxRunningJobsHC @waitParams
-            #endregion
+            else {
+                $completedBackup.Job = $null
+            }
         }
     }
 
@@ -469,38 +482,30 @@ Process {
         }
         #endregion
 
-        #region Start restore after all backups are done
+        #region Start restore after backup is done
         while (
             $backupJobs = $Tasks | Where-Object {
-                (-not $_.JobErrors) -and
                 ($_.Job.Name -eq 'Backup') 
-            }   
-        ) {
-            $backupJobs.Job | Wait-Job -Any
-            
-            foreach (
-                $completedBackup in 
-                $backupJobs | Where-Object {
-                    ($_.Job.State -match 'Completed|Failed')
-                }
-            ) {
-                & $getBackupResultAndStartRestore
             }
-        }
-        #endregion
-
-        #region Start remaining restore tasks
-        foreach (
-            $task in 
-            $Tasks | Where-Object {
-                 (-not $_.JobErrors) -and
-                  ($_.Job.Name -ne 'Restore') 
-            } 
         ) {
-            $backupComputer = $Tasks | Where-Object {
-                $_.Backup -eq $task.Backup
-            } | Select-Object -First 1
-           
+            #region Verbose progress
+            $runningBackupJobCounter = ($backupJobs | Measure-Object).Count
+            if ($runningBackupJobCounter -eq 1) {
+                $M = 'Wait for the last running backup job to finish'
+            }
+            else {
+                $M = "Wait for one of the '{0}' running backup jobs to finish" -f $runningBackupJobCounter
+            }
+            Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
+            #endregion
+
+            $finishedJob = $backupJobs.Job | Wait-Job -Any
+            
+            $completedBackup = $backupJobs | Where-Object {
+                $_.Job.Id -eq $finishedJob.Id
+            }
+            
+            & $getBackupResultAndStartRestore
         }
         #endregion
 
