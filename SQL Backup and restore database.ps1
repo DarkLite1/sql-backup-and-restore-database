@@ -620,10 +620,10 @@ End {
         $counter = @{
             tasks        = ($Tasks | Measure-Object).Count
             backups      = (
-                $Tasks | Where-Object { $_.BackupOk } | Measure-Object
+                $exportToExcel | Where-Object { $_.BackupOk } | Measure-Object
             ).Count
             restores     = (
-                $Tasks | Where-Object { $_.RestoreOk } | Measure-Object
+                $exportToExcel | Where-Object { $_.RestoreOk } | Measure-Object
             ).Count
             jobErrors    = ($Tasks.jobErrors | Measure-Object).Count
             systemErrors = ($Error.Exception.Message | Measure-Object).Count

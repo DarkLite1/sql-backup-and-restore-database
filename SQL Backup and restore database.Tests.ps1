@@ -677,9 +677,9 @@ Describe 'Start-Job is called' {
         Context 'send a mail to the user with' {
             BeforeAll {
                 $testMail = @{
-                    Priority = 'High'
-                    Subject  = '1 task, 0 backups, 0 restores, 1 error'
-                    Message  = "*Summary*<th>Total tasks</th>*<td>1</td>*<th>Successful backups</th>*<td>0</td>*<th>Successful restores</th>*<td>0</td>*<th>Errors</th>*<td>1</td>*<p><i>* Check the attachment for details</i></p>*"
+                    Priority = 'Normal'
+                    Subject  = '1 task, 1 backup, 1 restore'
+                    Message  = "*Summary*<th>Total tasks</th>*<td>1</td>*<th>Successful backups</th>*<td>1</td>*<th>Successful restores</th>*<td>1</td>*<th>Errors</th>*<td>0</td>*<p><i>* Check the attachment for details</i></p>*"
                 }
             }
             It 'To Bcc Priority Subject' {
@@ -710,7 +710,7 @@ Describe 'Start-Job is called' {
                     ($Message -like $testMail.Message)
                 }
             }
-        }
+        } -Tag test
     }
     Context 'for two different backup and restore computers' {
         BeforeAll {
