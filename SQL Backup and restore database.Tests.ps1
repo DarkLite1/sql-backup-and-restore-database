@@ -1361,6 +1361,7 @@ Describe 'when a backup fails because' {
                         Backup      = 'PC1'
                         Restore     = 'PC2'
                         BackupOk    = $false
+                        CopyOk      = $false
                         RestoreOk   = $false
                         Error       = "'PC1' Backup error 'no backup file found'"
                         BackupFile  = $null
