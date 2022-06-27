@@ -100,7 +100,7 @@ Begin {
         }
         $jobDuration = New-TimeSpan @params
 
-        $M = "'{0}' {2} job duration '{1:hh}:{1:mm}:{1:ss}'" -f 
+        $M = "'{0}' {2} job duration '{1:hh}:{1:mm}:{1:ss}:{1:fff}'" -f 
         $ComputerName, $jobDuration, $Job.Name
         Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
 
@@ -531,7 +531,7 @@ Process {
                 $M = 'Wait for the last running restore job to finish'
             }
             else {
-                $M = "Wait for one of the '{0}' running restore jobs to finish" -f $runningRestoreJobCounter
+                $M = "Wait for one of '{0}' running restore jobs to finish" -f $runningRestoreJobCounter
             }
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
             #endregion

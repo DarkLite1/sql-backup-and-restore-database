@@ -564,6 +564,156 @@ Describe 'send an e-mail to the admin when' {
         }
     }
 }
+Describe 'Start-Job is called' {
+    Context 'for one backup and one source computer' {
+        BeforeAll {
+            Mock Start-Job {
+                & $realCmdLet.StartJob -Scriptblock {
+                    [PSCustomObject]@{
+                        BackupOk   = $true
+                        BackupFile = $using:testBackupFile
+                        Error      = $null
+                    }
+                } -Name 'Backup'
+            } -ParameterFilter {
+                ($Name -eq 'Backup')
+            }
+            Mock Start-Job {
+                & $realCmdLet.StartJob -Scriptblock { 
+                    [PSCustomObject]@{
+                        CopyOk    = $true
+                        RestoreOk = $true
+                        Error     = $null
+                    }
+                } -Name 'Restore'
+            } -ParameterFilter {
+                ($Name -eq 'Restore')
+            }
+    
+            @{
+                MailTo            = @('bob@contoso.com')
+                MaxConcurrentJobs = 6
+                ComputerName      = @(
+                    @{
+                        Backup  = 'PC1'
+                        Restore = 'PC2'
+                    }
+                )
+                Backup            = @{
+                    Query  = "EXECUTE dbo.DatabaseBackup"
+                    Folder = $testBackupFolder 
+                }
+                Restore           = @{
+                    Query = "RESTORE DATABASE"
+                    File  = $testRestoreFile
+                }
+            } | ConvertTo-Json | Out-File @testOutParams
+    
+            . $testScript @testParams
+        }
+        It 'once to create a database backup' {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+                ($Name -eq 'Backup') -and
+                ($FilePath -like '*SQL Backup.ps1') -and
+                ($ArgumentList[0] -eq 'PC1') -and
+                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            }
+        }
+        It 'once to restore a database backup' {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+                ($Name -eq 'Restore') -and
+                ($FilePath -like '*SQL Restore.ps1') -and
+                ($ArgumentList[0] -eq 'PC2') -and
+                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+                ($ArgumentList[2] -eq $testBackupFile)
+            }
+        }
+    }
+    Context 'for two different backup and source computers' {
+        BeforeAll {
+            Mock Start-Job {
+                & $realCmdLet.StartJob -Scriptblock {
+                    [PSCustomObject]@{
+                        BackupOk   = $true
+                        BackupFile = $using:testBackupFile
+                        Error      = $null
+                    }
+                } -Name 'Backup'
+            } -ParameterFilter {
+                ($Name -eq 'Backup')
+            }
+            Mock Start-Job {
+                & $realCmdLet.StartJob -Scriptblock { 
+                    [PSCustomObject]@{
+                        CopyOk    = $true
+                        RestoreOk = $true
+                        Error     = $null
+                    }
+                } -Name 'Restore'
+            } -ParameterFilter {
+                ($Name -eq 'Restore')
+            }
+    
+            @{
+                MailTo            = @('bob@contoso.com')
+                MaxConcurrentJobs = 6
+                ComputerName      = @(
+                    @{
+                        Backup  = 'PC1'
+                        Restore = 'PC2'
+                    }
+                    @{
+                        Backup  = 'PC3'
+                        Restore = 'PC4'
+                    }
+                )
+                Backup            = @{
+                    Query  = "EXECUTE dbo.DatabaseBackup"
+                    Folder = $testBackupFolder 
+                }
+                Restore           = @{
+                    Query = "RESTORE DATABASE"
+                    File  = $testRestoreFile
+                }
+            } | ConvertTo-Json | Out-File @testOutParams
+    
+            . $testScript @testParams
+        }
+        It 'twice to create a database backup' {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+                ($Name -eq 'Backup') -and
+                ($FilePath -like '*SQL Backup.ps1') -and
+                ($ArgumentList[0] -eq 'PC1') -and
+                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            }
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+                ($Name -eq 'Backup') -and
+                ($FilePath -like '*SQL Backup.ps1') -and
+                ($ArgumentList[0] -eq 'PC3') -and
+                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+            }
+        }
+        It 'twice to restore a database backup' {
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+                ($Name -eq 'Restore') -and
+                ($FilePath -like '*SQL Restore.ps1') -and
+                ($ArgumentList[0] -eq 'PC2') -and
+                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+                ($ArgumentList[2] -eq $testBackupFile)
+            }
+            Should -Invoke Start-Job -Times 1 -Exactly -Scope Context -ParameterFilter {
+                ($Name -eq 'Restore') -and
+                ($FilePath -like '*SQL Restore.ps1') -and
+                ($ArgumentList[0] -eq 'PC4') -and
+                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+                ($ArgumentList[2] -eq $testBackupFile)
+            }
+        }
+    }
+} -Tag test 
 Describe 'when tests pass' {
     BeforeAll {
         Mock Start-Job {
@@ -629,7 +779,7 @@ Describe 'when tests pass' {
                 ($ArgumentList[2] -eq $testBackupFile)
             }
         }
-    } -Tag test 
+    } #-Tag test 
     
     Context 'in SQL' {
         It 'restore the database on the restore computer' {
