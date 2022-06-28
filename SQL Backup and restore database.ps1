@@ -568,6 +568,7 @@ Process {
                 [boolean]$_.JobResult.Restore.RestoreOk
             }
         },
+        'Duration',
         @{
             Name       = 'BackupFile';
             Expression = {
