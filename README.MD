@@ -12,4 +12,4 @@ A scheduled task can be created to run the script in an automated way.
 
 # Best practices
 - Use one .JSON input file per database. Only one backup and restore query is allowed in the input file. This makes it easier to maintain too.
-- Read the [help section](SQL Backup and restore database.ps1) in the script for an explanation of the input file parameters.
+- Read the [help section](SQL%20sBackup%20sand%20srestore%20sdatabase.ps1) in the script for an explanation of the input file parameters.
