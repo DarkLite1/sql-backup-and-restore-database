@@ -685,15 +685,15 @@ Describe 'for one backup and one restore computer' {
         }
         It 'To Bcc Priority Subject' {
             Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                    ($To -eq 'bob@contoso.com') -and
-                    ($Bcc -eq $ScriptAdmin) -and
-                    ($Priority -eq $testMail.Priority) -and
-                    ($Subject -eq $testMail.Subject)
+                ($To -eq 'bob@contoso.com') -and
+                ($Bcc -eq $ScriptAdmin) -and
+                ($Priority -eq $testMail.Priority) -and
+                ($Subject -eq $testMail.Subject)
             }
         }
         It 'Attachments' {
             Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                    ($Attachments -like '* - Log.xlsx')
+                ($Attachments -like '* - Log.xlsx')
             }
         }
         It 'Message' {
@@ -703,12 +703,12 @@ Describe 'for one backup and one restore computer' {
         }
         It 'Everything' {
             Should -Invoke Send-MailHC -Exactly 1 -Scope Describe -ParameterFilter {
-                    ($To -eq 'bob@contoso.com') -and
-                    ($Bcc -eq $ScriptAdmin) -and
-                    ($Priority -eq $testMail.Priority) -and
-                    ($Subject -eq $testMail.Subject) -and
-                    ($Attachments -like '* - Log.xlsx') -and
-                    ($Message -like $testMail.Message)
+                ($To -eq 'bob@contoso.com') -and
+                ($Bcc -eq $ScriptAdmin) -and
+                ($Priority -eq $testMail.Priority) -and
+                ($Subject -eq $testMail.Subject) -and
+                ($Attachments -like '* - Log.xlsx') -and
+                ($Message -like $testMail.Message)
             }
         }
     }
@@ -766,21 +766,21 @@ Describe 'for two different backup and restore computers' {
     Context 'Start-Job is called' {
         It 'twice to create a database backup' {
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-            ($Name -eq 'Backup') -and
-            ($FilePath -like '*SQL Backup.ps1') -and
-            ($ArgumentList[0] -eq 'PC1') -and
-            ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
-            ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+                ($Name -eq 'Backup') -and
+                ($FilePath -like '*SQL Backup.ps1') -and
+                ($ArgumentList[0] -eq 'PC1') -and
+                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
             }
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-            ($Name -eq 'Backup') -and
-            ($FilePath -like '*SQL Backup.ps1') -and
-            ($ArgumentList[0] -eq 'PC3') -and
-            ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
-            ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+                ($Name -eq 'Backup') -and
+                ($FilePath -like '*SQL Backup.ps1') -and
+                ($ArgumentList[0] -eq 'PC3') -and
+                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
             }
             Should -Invoke Start-Job -Times 2 -Exactly -Scope Describe -ParameterFilter {
-            ($Name -eq 'Backup')
+              ($Name -eq 'Backup')
             }
         }
         It 'twice to restore a database backup' {
@@ -801,7 +801,7 @@ Describe 'for two different backup and restore computers' {
                 ($ArgumentList[3] -eq $testRestoreFile)
             }
             Should -Invoke Start-Job -Times 2 -Exactly -Scope Describe -ParameterFilter {
-            ($Name -eq 'Restore')
+                ($Name -eq 'Restore')
             }
         }
     }
