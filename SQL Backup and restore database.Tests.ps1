@@ -785,18 +785,20 @@ Describe 'for two different backup and restore computers' {
         }
         It 'twice to restore a database backup' {
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-            ($Name -eq 'Restore') -and
-            ($FilePath -like '*SQL Restore.ps1') -and
-            ($ArgumentList[0] -eq 'PC2') -and
-            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-            ($ArgumentList[2] -eq $testBackupFile)
+                ($Name -eq 'Restore') -and
+                ($FilePath -like '*SQL Restore.ps1') -and
+                ($ArgumentList[0] -eq 'PC2') -and
+                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+                ($ArgumentList[2] -eq $testBackupFile) -and
+                ($ArgumentList[3] -eq $testRestoreFile)
             }
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-            ($Name -eq 'Restore') -and
-            ($FilePath -like '*SQL Restore.ps1') -and
-            ($ArgumentList[0] -eq 'PC4') -and
-            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-            ($ArgumentList[2] -eq $testBackupFile)
+                ($Name -eq 'Restore') -and
+                ($FilePath -like '*SQL Restore.ps1') -and
+                ($ArgumentList[0] -eq 'PC4') -and
+                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+                ($ArgumentList[2] -eq $testBackupFile) -and
+                ($ArgumentList[3] -eq $testRestoreFile)
             }
             Should -Invoke Start-Job -Times 2 -Exactly -Scope Describe -ParameterFilter {
             ($Name -eq 'Restore')
@@ -943,30 +945,32 @@ Describe 'for the same backup computer with multiple restore computers' {
     Context 'Start-Job is called' {
         It 'once to create a database backup' {
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-            ($Name -eq 'Backup') -and
-            ($FilePath -like '*SQL Backup.ps1') -and
-            ($ArgumentList[0] -eq 'PC1') -and
-            ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
-            ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
+                ($Name -eq 'Backup') -and
+                ($FilePath -like '*SQL Backup.ps1') -and
+                ($ArgumentList[0] -eq 'PC1') -and
+                ($ArgumentList[1] -eq 'EXECUTE dbo.DatabaseBackup') -and
+                ($ArgumentList[2] -eq ($testBackupFile | Split-Path))
             }
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-            ($Name -eq 'Backup')
+                ($Name -eq 'Backup')
             }
         }
         It 'twice to restore a database backup' {
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-            ($Name -eq 'Restore') -and
-            ($FilePath -like '*SQL Restore.ps1') -and
-            ($ArgumentList[0] -eq 'PC2') -and
-            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-            ($ArgumentList[2] -eq $testBackupFile)
+                ($Name -eq 'Restore') -and
+                ($FilePath -like '*SQL Restore.ps1') -and
+                ($ArgumentList[0] -eq 'PC2') -and
+                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+                ($ArgumentList[2] -eq $testBackupFile) -and
+                ($ArgumentList[3] -eq $testRestoreFile)
             }
             Should -Invoke Start-Job -Times 1 -Exactly -Scope Describe -ParameterFilter {
-            ($Name -eq 'Restore') -and
-            ($FilePath -like '*SQL Restore.ps1') -and
-            ($ArgumentList[0] -eq 'PC4') -and
-            ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-            ($ArgumentList[2] -eq $testBackupFile)
+                ($Name -eq 'Restore') -and
+                ($FilePath -like '*SQL Restore.ps1') -and
+                ($ArgumentList[0] -eq 'PC4') -and
+                ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
+                ($ArgumentList[2] -eq $testBackupFile) -and
+                ($ArgumentList[3] -eq $testRestoreFile)
             }
             Should -Invoke Start-Job -Times 2 -Exactly -Scope Describe -ParameterFilter {
             ($Name -eq 'Restore')
@@ -1559,7 +1563,8 @@ Describe 'when a backup fails because' {
                 ($FilePath -like '*SQL Restore.ps1') -and
                 ($ArgumentList[0] -eq 'PC2') -and
                 ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-                ($ArgumentList[2] -eq $testBackupFile)
+                ($ArgumentList[2] -eq $testBackupFile) -and
+                ($ArgumentList[3] -eq $testRestoreFile)
             }  
         }
         It 'Start-Job is not called for pairs where a computer is offline' {
@@ -1641,9 +1646,10 @@ Describe 'when a restore will fail because' {
                 ($FilePath -like '*SQL Restore.ps1') -and
                 ($ArgumentList[0] -eq 'PC2') -and
                 ($ArgumentList[1] -eq 'RESTORE DATABASE') -and
-                ($ArgumentList[2] -eq $testBackupFile)
+                ($ArgumentList[2] -eq $testBackupFile) -and
+                ($ArgumentList[3] -eq $testRestoreFile)
             }
-        }
+        } -Tag test
         It 'Start-Job is not called for pairs where a computer is offline' {
             Should -Not -Invoke Start-Job -Scope Context -ParameterFilter {
                 ($ArgumentList[0] -eq 'PC3')
