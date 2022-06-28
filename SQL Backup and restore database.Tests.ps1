@@ -1,5 +1,5 @@
-#Requires -Modules Pester
 #Requires -Version 5.1
+#Requires -Modules Pester, ImportExcel
 
 BeforeAll {
     Get-Job | Remove-Job -Force -EA Ignore
