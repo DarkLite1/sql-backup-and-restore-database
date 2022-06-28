@@ -301,7 +301,7 @@ Begin {
                 Date         = 'ScriptStartTime'
                 NoFormatting = $true
             }
-            $logFile = New-LogFileNameHC @LogParams
+            $logFile = New-LogFileNameHC @logParams
         }
         Catch {
             throw "Failed creating the log folder '$LogFolder': $_"
