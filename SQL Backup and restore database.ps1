@@ -489,6 +489,7 @@ Process {
             ) {
                 & $getBackupResultAndStartRestore
             }
+            #endregion
         }
         #endregion
 
