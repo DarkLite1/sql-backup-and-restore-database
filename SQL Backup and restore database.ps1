@@ -141,7 +141,7 @@ Begin {
         #region Get job errors
         foreach ($e in $jobErrors) {
             $M = "'{0}' {1} job error '{2}'" -f 
-            $ComputerName, $Job.Name , $e.ToString()
+            $ComputerName, $Job.Name, $e.ToString()
             Write-Warning $M; Write-EventLog @EventWarnParams -Message $M
                   
             $result.Errors += $M
@@ -160,8 +160,7 @@ Begin {
         Select-Object -Property * -ExcludeProperty 'Error'
 
         if (-not $result.Errors) {
-            $M = "'{0}' {1} job successful" -f 
-            $ComputerName, $Job.Name, $result.Result.Error
+            $M = "'{0}' {1} job successful" -f $ComputerName, $Job.Name
             Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
         }
 
