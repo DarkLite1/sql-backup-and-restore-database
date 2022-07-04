@@ -127,7 +127,7 @@ Begin {
         }
 
         #region Get job results
-        $M = "'{0}' {1} job get results" -f $ComputerName, $Job.Name
+        $M = "'{0}' {1} job '{2}'" -f $ComputerName, $Job.Name, $job.State
         Write-Verbose $M; Write-EventLog @EventVerboseParams -Message $M
               
         $jobErrors = @()
